@@ -1,2 +1,2 @@
-python-dotenv
-pymsteams
+python-dotenv==1.0.0
+pymsteams==0.2.2
