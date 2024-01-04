@@ -53,6 +53,11 @@ python3  boamp.py
 Le script récupérera automatiquement les données pour la journée précédente.
 Des notifications contenant des informations détaillées seront envoyées aux canaux Microsoft Teams configurés.
 
+## Exemple
+
+![screenshot](.github/screenshot.png)
+
+
 ## Authors
 
 - [Julien Mousqueton](https://www.github.com/JMousqueton) CTO @ [Computacenter](https://www.computacenter.com)
