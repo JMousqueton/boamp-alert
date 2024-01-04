@@ -58,7 +58,7 @@ Des notifications contenant des informations détaillées seront envoyées aux c
 ![screenshot](.github/screenshot.png)
 
 
-## Authors
+## Auteur
 
 - [Julien Mousqueton](https://www.github.com/JMousqueton) CTO @ [Computacenter](https://www.computacenter.com)
 
