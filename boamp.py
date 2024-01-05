@@ -1,13 +1,12 @@
 import requests
-import json
-import pymsteams
+import json 
+import pymsteams # To Publish Card on teams 
 from datetime import datetime, timedelta
-import logging
+import logging 
 import argparse
-import re
+import re # For  removing HTML tag in debug mode 
 
-
-#For Webhook 
+#For reading .env 
 import os
 from dotenv import load_dotenv
 
@@ -31,6 +30,7 @@ def errlog(msg):
     '''Error logging'''
     logging.error(msg)
 
+# Remove HTML Code from message in debug mode  
 def remove_html_tags(text):
     clean = re.compile('<.*?>')
     return re.sub(clean, '', text)
@@ -50,10 +50,15 @@ def fetch_boamp_data(date):
     url = "https://www.boamp.fr/api/explore/v2.1/catalog/datasets/boamp/records"
     params = {
         "select": "*",
-        "where": f"{search}"
+        "where": f"{search}",
+        "limit": 99,
+        "offset": 0,
+        "timezone": "UTC",
+        "include_links": "false",
+        "include_app_metas": "false"
     }
     if debug_mode:
-        stdlog(url+search)
+        stdlog(url+'?select=*&where='+search)
     try:
         response = requests.get(url, params=params)
         response.raise_for_status()
@@ -88,6 +93,7 @@ def determine_status(nature):
             status = "Non disponible"
     return status
 
+# Send message to Teams Channel regarding the nature of the message 
 def tomsteeams(nature,title,message):
     if nature == "ATTRIBUTION":
         webhook = webhook_attribution
@@ -128,9 +134,8 @@ def parse_boamp_data(api_response, date):
     if 'results' in api_response and api_response['results']:
         for record in api_response['results']:
             
-
             """
-            Get all data 
+            Grab all data in variable  
             """
             nature = record.get('nature')
             status = determine_status(nature)
@@ -140,11 +145,10 @@ def parse_boamp_data(api_response, date):
             services = record.get('descripteur_libelle')
             services_clean = ', '.join(services)
             services_list= services_clean.replace('Informatique (','').replace(')','')
-            pubdate =  record.get('dateparution', 'Non disponible')
-
+            ## Not used 
+            # pubdate =  record.get('dateparution', 'Non disponible')
+            ## 
             typemarche = record.get('famille_libelle', 'Non disponible')
-            
-            
             devise = ''
             try:
                 titulaires = record.get('titulaire',[])
@@ -214,8 +218,7 @@ def parse_boamp_data(api_response, date):
 
             message=''
 
-
-            # Add text to the message
+            # Create the message for msteams card 
             message = '<strong>Acheteur : </strong>' + acheteur + '\n\n'
             if ref:
                 message += '<strong>Référence marché : </strong>' + ref + '\n\n'
@@ -228,8 +231,11 @@ def parse_boamp_data(api_response, date):
                 for lot in lots_data:
                     intitule = lot.get('INTITULE')
                     num = lot.get('NUM')
-                    info = lot.get('INFO_COMPL')
+                    info = lot.get('INFO_COMPL','')
+                    deviselot = lot.get('VALEUR','').get('@DEVISE','')
+                    montantlot = lot.get('VALEUR','').get('#text','')
                     message += '\tLot '+ num + " : " +  intitule + '\n\n'
+                    message += '\t\tValeur du lot : ' + montantlot + ' ' + deviselot + '\n\n'
                     message += '\t\t'+info+'\n\n'
             if deadline:
                 message += '<strong>Deadline : </strong>' + deadline + ' ('+ str(delai)+ ' jours)\n\n' 
@@ -244,15 +250,14 @@ def parse_boamp_data(api_response, date):
                 annonce_lie_list= ', '.join(annonce_lie)
                 message += '<strong>Annonce(s) liée(s) : </strong>' + annonce_lie_list + '\n\n'
             message += '<strong>Avis : </strong>: ' + urlavis + '\n\n'
-                
             
             # Add a title to the message
-            title = status + '  ' + objet
+            title = '['+ID+'] ' + status + '  ' + objet
             # Send MsTeams Card
             if not debug_mode:
                 tomsteeams(nature,title,message)
             else:
-                print('['+ID+'] ' + title + '\n' + remove_html_tags(message.replace('\n\n','\n')))
+                print(title + '\n' + remove_html_tags(message.replace('\n\n','\n')))
                 print('-----------------------------------------------')
             
     else:
@@ -322,4 +327,4 @@ if __name__ == "__main__":
         parse_boamp_data(data, formatted_yesterday)
     else:
         errlog('Pas de donnée à analyser')
-    stdlog('Fin !')
+    stdlog('Fini !')
