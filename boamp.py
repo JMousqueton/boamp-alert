@@ -43,7 +43,7 @@ def fetch_boamp_data(date):
     :return: JSON response data.
     """
     year, month, day = date.split('-')
-    search = "date_format(dateparution, 'yyyy') = '" + year + "' and date_format(dateparution, 'MM') = '"+month+"' and (descripteur_libelle like 'Informatique%' " #and date_format(dateparution, 'dd') = '"+day+"' 
+    search = "date_format(dateparution, 'yyyy') = '" + year + "' and date_format(dateparution, 'MM') = '"+month+"' and date_format(dateparution, 'dd') = '"+day+"' and (descripteur_libelle like 'Informatique%' " 
     for word in descripteurs_list:
         search += " or descripteur_libelle = '"+word+"'" 
     search += ")"
@@ -58,7 +58,7 @@ def fetch_boamp_data(date):
         "include_app_metas": "false"
     }
     if debug_mode:
-        stdlog(url+'?select=*&where='+search)
+        stdlog('API : '+ url+'?select=*&where='+search)
     try:
         response = requests.get(url, params=params)
         response.raise_for_status()
@@ -118,10 +118,11 @@ def parse_boamp_data(api_response, date):
     :param date: Date string used for the filename.
     """
     total_count = api_response.get('total_count', 0)
-
+    stdlog(str(total_count) + ' enregistrement(s) récupéré(s)')
+    i=0 
     # Write the response to a file
     filename = f"data/boamp-{date}.json"
-    stdlog('Ecrit le fichier ' +  filename)
+    stdlog('Ecriture du fichier ' +  filename)
     try:
         with open(filename, 'w') as file:
             json.dump(api_response, file, indent=4)
@@ -285,6 +286,7 @@ def parse_boamp_data(api_response, date):
             # Send MsTeams Card
             if not debug_mode:
                 tomsteeams(nature,title,message)
+                i+=1 
             else:
                 print(title + '\n' + remove_html_tags(message.replace('\n\n','\n')))
                 print('-----------------------------------------------')
@@ -292,6 +294,7 @@ def parse_boamp_data(api_response, date):
     else:
         errlog("No results found")
 
+    stdlog(str(i) + ' messages envoyés dans teams')
 
 
 if __name__ == "__main__":
@@ -333,7 +336,7 @@ if __name__ == "__main__":
     ## Get Keywords 
     descripteurs_list = os.getenv('DESCRIPTEURS', '').split(',')
     if debug_mode:
-        stdlog(' DESCRIPTEURS :' + os.getenv('DESCRIPTEURS', ''))
+        stdlog('DESCRIPTEURS : ' + os.getenv('DESCRIPTEURS', ''))
 
     if not webhook_marche or not webhook_attribution:
         errlog("Erreur: Au moins une des deux webhook URLs est manquante ou vide.")
@@ -349,7 +352,7 @@ if __name__ == "__main__":
     if today_mode:
         formatted_yesterday = today.strftime("%Y-%m-%d")
 
-    stdlog('Récuperation des données du BOAMP pour le  ' + formatted_yesterday)
+    stdlog('Récuperation des données du BOAMP pour le ' + formatted_yesterday)
     data = fetch_boamp_data(formatted_yesterday)
     if data:
         stdlog('Analyse des données du BOAMP pour le ' + formatted_yesterday)
