@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+__author__ = "Julien Mousqueton"
+__email__ = "julien.mousqueton_AT_computacenter.com"
+__version__ = "1.0.0"
+
+# Import for necessary Python modules
 import requests
 import json 
 import pymsteams # To Publish Card on teams 
@@ -36,10 +44,11 @@ def remove_html_tags(text):
     return re.sub(clean, '', text)
 
 
-def fetch_boamp_data(date):
+def fetch_boamp_data(date, attribution_only=False):
     """
     Fetches data from the BOAMP API for a given date.
     :param date: A string representing the date in the format 'yyyy-MM-dd'.
+    :param attribution_only: A boolean indicating whether to filter for attribution announcements only.
     :return: JSON response data.
     """
     year, month, day = date.split('-')
@@ -47,6 +56,8 @@ def fetch_boamp_data(date):
     for word in descripteurs_list:
         search += " or descripteur_libelle = '"+word+"'" 
     search += ")"
+    if attribution_only:
+        search += " and nature='ATTRIBUTION'"
     url = "https://www.boamp.fr/api/explore/v2.1/catalog/datasets/boamp/records"
     params = {
         "select": "*",
@@ -137,7 +148,7 @@ def parse_boamp_data(api_response, date):
 
     if total_count > 99:
         errlog("Trop de résultat !!!")
-
+    stdlog('Extraction des données ...')
     if 'results' in api_response and api_response['results']:
         for record in api_response['results']:
             
@@ -152,9 +163,9 @@ def parse_boamp_data(api_response, date):
             services = record.get('descripteur_libelle')
             services_clean = ', '.join(services)
             services_list= services_clean.replace('Informatique (','').replace(')','')
-            ## Not used 
-            # pubdate =  record.get('dateparution', 'Non disponible')
-            ## 
+            
+            pubdate =  record.get('dateparution', 'Non disponible')
+             
             typemarche = record.get('famille_libelle', 'Non disponible')
             devise = ''
             try:
@@ -238,18 +249,21 @@ def parse_boamp_data(api_response, date):
                     lots = False
             if lots:
                 lots_data = donnees['OBJET'].get('LOTS', {}).get('LOT', [])
-                nblots = len(lots_data)
-            
+                nblots = len(lots_data)            
             try: 
                 annonce_lie = record.get('annonce_lie', [])
             except: 
                 annonce_lie = ''
             urlavis = record.get('url_avis', 'Not available')
 
+            
+
             message=''
 
             # Create the message for msteams card 
-            message = '<strong>Acheteur : </strong>' + acheteur + '\n\n'
+            if pubdate:
+                message='<strong>' + pubdate + '</strong>\n\n'
+            message += '<strong>Acheteur : </strong>' + acheteur + '\n\n'
             if ref:
                 message += '<strong>Référence marché : </strong>' + ref + '\n\n'
             message += '<strong>Services : </strong>' + services_list + '\n\n'
@@ -258,16 +272,25 @@ def parse_boamp_data(api_response, date):
                 message += '<strong>Valeur du marché : </strong>' + valeur + ' ' + devise + '\n\n'
             if lots:
                 message += '<strong>Marché alloti : </strong>✅\n\n'
-                for lot in lots_data:
-                    intitule = lot.get('INTITULE')
-                    num = lot.get('NUM')
-                    info = lot.get('INFO_COMPL','')
-                    
-                    deviselot = lot.get('VALEUR',{}).get('@DEVISE','')
-                    montantlot = lot.get('VALEUR',{}).get('#text','')
-                    message += '\tLot '+ num + " : " +  intitule + '\n\n'
-                    message += '\t\tValeur du lot : ' + montantlot + ' ' + deviselot + '\n\n'
-                    message += '\t\t'+info+'\n\n'
+                try: 
+                    for lot in lots_data:
+                        intitule = lot.get('INTITULE','')
+                        if not intitule:
+                            intitule = lot.get('DESCRIPTION')
+                        num = lot.get('NUM')
+                        info = lot.get('INFO_COMPL','')
+                        deviselot = lot.get('VALEUR',{}).get('@DEVISE','')
+                        montantlot = lot.get('VALEUR',{}).get('#text','')
+                        if not num:
+                            message += '\t' + intitule + '\n\n' 
+                        else:   
+                            message += '\tLot '+ num + " : " +  intitule + '\n\n'
+                        if montantlot:
+                            message += '\t\tValeur du lot : ' + montantlot + ' ' + deviselot + '\n\n'
+                        message += '\t\t'+info+'\n\n'
+                except: 
+                    pass
+                    #Parsing error should be investigate (ie 2023-12-23)
             if deadline:
                 message += '<strong>Deadline : </strong>' + deadline + ' ('+ str(delai)+ ' jours)\n\n' 
             if offresrecues:
@@ -294,7 +317,7 @@ def parse_boamp_data(api_response, date):
     else:
         errlog("No results found")
 
-    stdlog(str(i) + ' messages envoyés dans teams')
+    stdlog(str(i) + ' message(s) envoyé(s) dans teams')
 
 
 if __name__ == "__main__":
@@ -306,12 +329,14 @@ if __name__ == "__main__":
     | |`-' /\ `-' / | |  |)|| \  / | | |     
     /( `--'  )---'  |_|  (_)| |\/| | /(      
     (__)     (_)             '-'  '-'(__) 
-            by Julien Mousqueton / Computacenter         
+            par Julien Mousqueton / Computacenter         
         ''')
     # Setup argument parser
     parser = argparse.ArgumentParser(description="Script to fetch and process BOAMP data")
-    parser.add_argument("-d", "--debug", action="store_true", help="Enable debug mode (does not send messages to Teams)")
-    parser.add_argument("-n", "--now", action="store_true", help="Force to scan today")
+    parser.add_argument("-D", "--debug", action="store_true", help="Active le mode debug (aucun message ne sera envoyé à msteams)")
+    parser.add_argument("-n", "--now", action="store_true", help="Force la date du jour au lieu de J-1")
+    parser.add_argument("-d", "--date", type=str, help="Spécifie la date du scan au format yyyy-mm-dd", metavar="YYYY-MM-DD")
+    parser.add_argument("-a", "--attribution-only", action="store_true", help="Filtre uniquement les avis d'attribution")
 
     # Parse arguments
     args = parser.parse_args()
@@ -319,12 +344,10 @@ if __name__ == "__main__":
     # Main script execution
     debug_mode=args.debug
     today_mode=args.now
+    specified_date = args.date
 
     if debug_mode:
         stdlog("DEBUG MODE")
-
-    if today_mode:
-        stdlog("TODAY MODE")
 
     # Load the .env file
     load_dotenv()
@@ -342,21 +365,24 @@ if __name__ == "__main__":
         errlog("Erreur: Au moins une des deux webhook URLs est manquante ou vide.")
         exit(1)
 
-    today = datetime.now()
-
-    # Calculate yesterday's date
-    yesterday = today - timedelta(days=1)
-
-    # Format yesterday's date to the desired format
-    formatted_yesterday = yesterday.strftime("%Y-%m-%d")
+    # Determine the date to process
     if today_mode:
-        formatted_yesterday = today.strftime("%Y-%m-%d")
+        date_to_process = datetime.now().strftime("%Y-%m-%d")
+        stdlog("(!) TODAY MODE")
+    elif specified_date:
+        date_to_process = specified_date
+        stdlog("(!) FORCED DATE MODE")
+    else:
+        # Calculate yesterday's date
+        yesterday = datetime.now() - timedelta(days=1)
+        date_to_process = yesterday.strftime("%Y-%m-%d")
 
-    stdlog('Récuperation des données du BOAMP pour le ' + formatted_yesterday)
-    data = fetch_boamp_data(formatted_yesterday)
+    stdlog('Récuperation des données du BOAMP pour le ' + date_to_process)
+    data = fetch_boamp_data(date_to_process, args.attribution_only)
     if data:
-        stdlog('Analyse des données du BOAMP pour le ' + formatted_yesterday)
-        parse_boamp_data(data, formatted_yesterday)
+        stdlog('Analyse des données du BOAMP pour le ' + date_to_process)
+        parse_boamp_data(data, date_to_process)
     else:
         errlog('Pas de donnée à analyser')
+
     stdlog('Fini !')

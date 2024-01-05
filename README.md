@@ -65,16 +65,20 @@ python3 boamp.py -h
     | |`-' /\ `-' / | |  |)|| \  / | | |     
     /( `--'  )---'  |_|  (_)| |\/| | /(      
     (__)     (_)             '-'  '-'(__) 
-            by Julien Mousqueton / Computacenter         
+            par Julien Mousqueton / Computacenter         
         
-usage: boamp.py [-h] [-d] [-n]
+usage: boamp.py [-h] [-D] [-n] [-d YYYY-MM-DD] [-a]
 
 Script to fetch and process BOAMP data
 
 options:
-  -h, --help   show this help message and exit
-  -d, --debug  Enable debug mode (does not send messages to Teams)
-  -n, --now    Force to scan today)
+  -h, --help            show this help message and exit
+  -D, --debug           Active le mode debug (aucun message ne sera envoyé à msteams)
+  -n, --now             Force la date du jour au lieu de J-1
+  -d YYYY-MM-DD, --date YYYY-MM-DD
+                        Spécifie la date du scan au format yyyy-mm-dd
+  -a, --attribution-only
+                        Filtre uniquement les avis d'attribution
   ```
 
 ## Exemple
