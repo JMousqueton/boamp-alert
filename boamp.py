@@ -84,6 +84,23 @@ def determine_status(nature, record):
             status = "Non disponible"
     return status
 
+def tomsteeams(nature,title,message):
+    if nature == "ATTRIBUTION":
+        webhook = webhook_attribution
+    else:
+        webhook = webhook_marche
+    # Create a connector card object
+    myTeamsMessage = pymsteams.connectorcard(webhook)
+    # Prepare card object 
+    myTeamsMessage.text(message)              
+    myTeamsMessage.title(title)
+    # Send the message
+    try:
+        myTeamsMessage.send()
+    except pymsteams.TeamsWebhookException as e:
+        print(f"Erreur à l'envoie du message MSTeams : {e}")
+
+
 def parse_boamp_data(api_response, date):
     """
     Parses the JSON response from the BOAMP API and extracts key information.
@@ -107,9 +124,13 @@ def parse_boamp_data(api_response, date):
     if 'results' in api_response and api_response['results']:
         for record in api_response['results']:
             
+
+            """
+            Get all data 
+            """
             nature = record.get('nature')
             status = determine_status(nature, record)
-            #### print("ID Web :", record.get('idweb', 'Not available'))
+            ID = record.get('idweb', 'Non disponible')
             acheteur = record.get('nomacheteur', 'Non disponible')
             objet = record.get('objet', 'Non disponible')
             services = record.get('descripteur_libelle')
@@ -118,12 +139,9 @@ def parse_boamp_data(api_response, date):
             pubdate =  record.get('dateparution', 'Non disponible')
 
             typemarche = record.get('famille_libelle', 'Non disponible')
-            try:
-                devise = donnees['OBJET']['CARACTERISTIQUES']['VALEUR']['@DEVISE']
-                valeur = donnees['OBJET']['CARACTERISTIQUES']['VALEUR']['#text']
-            except:
-                devise = ''
-                valeur = ''
+            
+            
+            devise = ''
             try:
                 titulaires = record.get('titulaire',[])
             except:
@@ -138,6 +156,12 @@ def parse_boamp_data(api_response, date):
             donnees_brut = record.get('donnees',{})
             donnees = json.loads(donnees_brut)
             try:
+                devise = donnees['OBJET']['CARACTERISTIQUES']['VALEUR']['@DEVISE']
+                valeur = donnees['OBJET']['CARACTERISTIQUES']['VALEUR']['#text']
+            except:
+                 devise = ''
+                 valeur = ''
+            try:
                 duree = donnees.get('OBJET', {}).get('DUREE_DELAI', {}).get('DUREE_MOIS', '')
             except:
                 duree = ''
@@ -145,11 +169,23 @@ def parse_boamp_data(api_response, date):
                 offresrecues = donnees.get('ATTRIBUTION', {}).get('DECISION', {}).get('RENSEIGNEMENT', {}).get('NB_OFFRE_RECU', 'Non renseigné')
             except:
                 offresrecues = ''
+            try:
+                if 'DIV_EN_LOTS' in donnees['OBJET'] and 'OUI' in donnees['OBJET']['DIV_EN_LOTS']:
+                    lots = True 
+                else:
+                    lots = False 
+            except KeyError:
+                    lots = False
+            if lots:
+                lots_data = donnees['OBJET'].get('LOTS', {}).get('LOT', [])
+                nblots = len(lots_data)
+            
             try: 
                 annonce_lie = record.get('annonce_lie', [])
             except: 
                 annonce_lie = ''
             urlavis = record.get('url_avis', 'Not available')
+
 
             if nature in ['RECTIFICATIF', 'APPEL_OFFRE']:
                 # Add text to the message
@@ -158,8 +194,18 @@ def parse_boamp_data(api_response, date):
                 message += '<strong>Type de marché :</strong>' + typemarche + '\n\n' 
                 if valeur:
                     message += '<strong>Valeur du marché : </strong>' + f"{int(valeur):,}" + ' ' + devise + '\n\n'
+                if lots:
+                    message += '<strong>Marché alloti : ✅</strong>\n\n'
+                    for lot in lots_data:
+                        intitule = lot.get('INTITULE')
+                        num = lot.get('NUM')
+                        info = lot.get('INFO_COMPL')
+                        message += '\tLot '+ num + " : " +  intitule + '\n\n'
+                        message += '\t\t'+info+'\n\n'
                 if deadline:
                     message += '<strong>Deadline : </strong>' + deadline + '\n\n' 
+                if valeur:
+                    message += '<strong>Valeur du marché : </strong>' + valeur + ' ' + devise + '\n\n'
                 if duree:
                     message +='<strong>Durée du marché (en mois) : </strong>' + duree + '\n\n'
                 if annonce_lie:
@@ -167,29 +213,30 @@ def parse_boamp_data(api_response, date):
                     message += '<strong>Annonce(s) liée(s) : </strong>' + annonce_lie_list + '\n\n'
                 message += '<strong>Avis : </strong>: ' + urlavis + '\n\n'
 
-                myTeamsMessage4marche.text(message)
-
                 # Add a title to the message
                 title = status + ' ' + objet
-                myTeamsMessage4marche.title(title)
-
-                # Send the message
-                try:
-                    myTeamsMessage4marche.send()
-                except pymsteams.TeamsWebhookException as e:
-                    print(f"Error sending message: {e}")
-
+                ## Send message 
+                # tomsteeams(nature,title,message)
+                
             if nature in ['ATTRIBUTION']:
                 message = '<strong>Acheteur : </strong>' + acheteur + '\n\n'
                 message += '<strong>Services : </strong>' + services_list + '\n\n'
                 message += '<strong>Type de marché :</strong>' + typemarche + '\n\n' 
                 if valeur:
-                    message += '<strong>Valeur du marché : </strong>' + f"{int(valeur):,}" + ' ' + devise + '\n\n'
+                    message += '<strong>Valeur du marché : </strong>' + valeur + ' ' + devise + '\n\n'
+                if lots:
+                    message += '<strong>Marché alloti : ✅</strong>\n\n'
+                    for lot in lots_data:
+                        intitule = lot.get('INTITULE')
+                        num = lot.get('NUM')
+                        info = lot.get('INFO_COMPL')
+                        message += '\t\tLot '+ num + " : " +  intitule + '\n\n'
+                        message += '\t\t\t\t'+info+'\n\n'
                 if offresrecues:
                     message += '<strong>Offre(s) reçue(s) : </strong>' + offresrecues + '\n\n'
                 if titulaires:
                     titulaires_list = ', '.join(titulaires)
-                    message += '<stong>Titulaire(s) : </strong>' + titulaires_list + '\n\n'
+                    message += '<strong>Titulaire(s) : </strong>' + titulaires_list + '\n\n'
                 if duree:
                     message +='<strong>Durée du marché (en mois) : </strong>' + duree + '\n\n'
                 if annonce_lie:
@@ -197,19 +244,12 @@ def parse_boamp_data(api_response, date):
                     message += '<strong>Annonce(s) liée(s) : </strong>' + annonce_lie_list + '\n\n'
                 message += '<strong>Avis : </strong>: ' + urlavis + '\n\n'
 
-                myTeamsMessage4attribution.text(message)
-
                 # Add a title to the message
                 title = status + ' ' + objet
-                myTeamsMessage4attribution.title(title)
-
-                # Send the message
-                try:
-                    myTeamsMessage4attribution.send()
-                except pymsteams.TeamsWebhookException as e:
-                    errlog("Error sending message: " + {e})
-                
-            #stdlog(status + '   ' + objet)
+                ## Send message 
+                if ID == '24-377':
+                    tomsteeams(nature,title,message)
+                #print(message)
 
             
     else:
@@ -235,13 +275,8 @@ webhook_marche = os.getenv('WEBHOOK_MARCHE')
 webhook_attribution = os.getenv('WEBHOOK_ATTRIBUTION')
 
 if not webhook_marche or not webhook_attribution:
-    errlog("Error: One or both webhook URLs are missing or empty.")
+    errlog("Erreur: Au moins une des deux webhook URLs est manquante ou vide.")
     exit(1)
-
-
-# Create a connector card object
-myTeamsMessage4marche = pymsteams.connectorcard(webhook_marche)
-myTeamsMessage4attribution = pymsteams.connectorcard(webhook_attribution)
 
 today = datetime.now()
 
