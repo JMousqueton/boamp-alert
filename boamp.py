@@ -43,7 +43,7 @@ def fetch_boamp_data(date):
     :return: JSON response data.
     """
     year, month, day = date.split('-')
-    search = "date_format(dateparution, 'yyyy') = '" + year + "' and date_format(dateparution, 'MM') = '"+month+"' and date_format(dateparution, 'dd') = '"+day+"' and (descripteur_libelle like 'Informatique%' " 
+    search = "date_format(dateparution, 'yyyy') = '" + year + "' and date_format(dateparution, 'MM') = '"+month+"' and (descripteur_libelle like 'Informatique%' " #and date_format(dateparution, 'dd') = '"+day+"' 
     for word in descripteurs_list:
         search += " or descripteur_libelle = '"+word+"'" 
     search += ")"
@@ -121,8 +121,14 @@ def parse_boamp_data(api_response, date):
 
     # Write the response to a file
     filename = f"data/boamp-{date}.json"
-    with open(filename, 'w') as file:
-        json.dump(api_response, file, indent=4)
+    stdlog('Ecrit le fichier ' +  filename)
+    try:
+        with open(filename, 'w') as file:
+            json.dump(api_response, file, indent=4)
+    except TypeError as e:
+        errlog(f"Error in JSON serialization: {e}")
+    except IOError as e:
+        errlog(f"File I/O error: {e}")
 
     if total_count == 0:
         stdlog('Pas de nouvel avis pour ' + date)
@@ -151,7 +157,14 @@ def parse_boamp_data(api_response, date):
             typemarche = record.get('famille_libelle', 'Non disponible')
             devise = ''
             try:
-                titulaires = record.get('titulaire',[])
+                titulaires_list = record.get('titulaire',[])
+                # Check if the list has only one entry or multiple entries
+                if len(titulaires_list) == 1:
+                    # If there's only one entry, just take that entry
+                    titulaires = titulaires_list[0]
+                else:
+                    # If there are multiple entries, join them with ', '
+                    titulaires = ', '.join(titulaires_list)
             except:
                 titulaires = ''
             deadline = record.get('datelimitereponse', 'Non disponible')
@@ -161,9 +174,25 @@ def parse_boamp_data(api_response, date):
             except:
                 pass
             
+
+            ## Attaque des données JSON du champs donnees
             donnees_brut = record.get('donnees',{})
             donnees = json.loads(donnees_brut)
 
+            if not titulaires:
+                try:
+                    titulaires_list= donnees['ATTRIBUTION']['DECISION']['TITULAIRE']
+                    if isinstance(titulaires_list, list):
+                        nb=len(titulaires_list)
+                        for titulaire in titulaires_list:
+                            nb = nb - 1
+                            titulaires += titulaire['DENOMINATION']
+                            if nb > 0:
+                                titulaires += ', '
+                    else:
+                        titulaires = titulaires_list['DENOMINATION']
+                except:
+                    titulaires = ''
             if not deadline:
                 try:
                     deadline = donnees['CONDITION_DELAI']['RECEPT_OFFRES']
@@ -232,8 +261,9 @@ def parse_boamp_data(api_response, date):
                     intitule = lot.get('INTITULE')
                     num = lot.get('NUM')
                     info = lot.get('INFO_COMPL','')
-                    deviselot = lot.get('VALEUR','').get('@DEVISE','')
-                    montantlot = lot.get('VALEUR','').get('#text','')
+                    
+                    deviselot = lot.get('VALEUR',{}).get('@DEVISE','')
+                    montantlot = lot.get('VALEUR',{}).get('#text','')
                     message += '\tLot '+ num + " : " +  intitule + '\n\n'
                     message += '\t\tValeur du lot : ' + montantlot + ' ' + deviselot + '\n\n'
                     message += '\t\t'+info+'\n\n'
@@ -242,8 +272,7 @@ def parse_boamp_data(api_response, date):
             if offresrecues:
                 message += '<strong>Offre(s) reçue(s) : </strong>' + offresrecues + '\n\n'
             if titulaires:
-                titulaires_list = ', '.join(titulaires)
-                message += '<strong>Titulaire(s) : </strong>' + titulaires_list + '\n\n'
+                message += '<strong>Titulaire(s) : </strong>' + titulaires + '\n\n'
             if duree:
                 message +='<strong>Durée du marché (en mois) : </strong>' + duree + '\n\n'
             if annonce_lie:
@@ -279,7 +308,7 @@ if __name__ == "__main__":
     # Setup argument parser
     parser = argparse.ArgumentParser(description="Script to fetch and process BOAMP data")
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug mode (does not send messages to Teams)")
-    parser.add_argument("-n", "--now", action="store_true", help="Force to scan today)")
+    parser.add_argument("-n", "--now", action="store_true", help="Force to scan today")
 
     # Parse arguments
     args = parser.parse_args()
