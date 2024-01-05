@@ -32,7 +32,7 @@ pip3 install requests pymsteams python-dotenv
 
 3) Clonez ou téléchargez ce script sur votre machine locale.
 
-    ## Configuration 
+## Configuration 
 
 1) Créez un fichier .env dans le même répertoire que le script.
 2) Ajoutez les variables d'environnement suivantes au fichier .env :
