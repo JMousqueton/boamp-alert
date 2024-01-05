@@ -3,6 +3,9 @@ import json
 import pymsteams
 from datetime import datetime, timedelta
 import logging
+import argparse
+import re
+
 
 #For Webhook 
 import os
@@ -30,6 +33,9 @@ def errlog(msg):
     '''Error logging'''
     logging.error(msg)
 
+def remove_html_tags(text):
+    clean = re.compile('<.*?>')
+    return re.sub(clean, '', text)
 
 
 def fetch_boamp_data(date):
@@ -63,14 +69,13 @@ def fetch_boamp_data(date):
     except requests.exceptions.RequestException as err:
         print(f"Other Error: {err}")
 
-def determine_status(nature, record):
+def determine_status(nature):
     """
     Determines the status based on the nature field.
     :param nature: The nature field from the record.
     :param record: The entire record from the response.
     :return: The determined status.
     """
-    status = ""
     match nature:
         case "APPEL_OFFRE":
             status = "🟢"
@@ -96,7 +101,8 @@ def tomsteeams(nature,title,message):
     myTeamsMessage.title(title)
     # Send the message
     try:
-        myTeamsMessage.send()
+        # myTeamsMessage.send()
+        print('SENT !!!!')
     except pymsteams.TeamsWebhookException as e:
         print(f"Erreur à l'envoie du message MSTeams : {e}")
 
@@ -129,7 +135,7 @@ def parse_boamp_data(api_response, date):
             Get all data 
             """
             nature = record.get('nature')
-            status = determine_status(nature, record)
+            status = determine_status(nature)
             ID = record.get('idweb', 'Non disponible')
             acheteur = record.get('nomacheteur', 'Non disponible')
             objet = record.get('objet', 'Non disponible')
@@ -152,9 +158,31 @@ def parse_boamp_data(api_response, date):
                 deadline = date_object.strftime("%Y-%m-%d")
             except:
                 pass
-
+            
             donnees_brut = record.get('donnees',{})
             donnees = json.loads(donnees_brut)
+
+            if not deadline:
+                try:
+                    deadline = donnees['CONDITION_DELAI']['RECEPT_OFFRES']
+                    date_object = datetime.fromisoformat(deadline)
+                    deadline = date_object.strftime("%Y-%m-%d")
+                except:
+                    deadline = ''
+            if deadline:
+                target_date = datetime.strptime(deadline, "%Y-%m-%d")
+                current_date = datetime.now()
+                delai = (target_date - current_date).days
+            
+            try:
+                ref = donnees['CONDITION_ADMINISTRATIVE']['REFERENCE_MARCHE']
+            except:
+                ref = '' 
+            if not ref:
+                try:
+                    ref = donnees['OBJET']['REF_MARCHE']
+                except:
+                    ref = ''
             try:
                 devise = donnees['OBJET']['CARACTERISTIQUES']['VALEUR']['@DEVISE']
                 valeur = donnees['OBJET']['CARACTERISTIQUES']['VALEUR']['#text']
@@ -166,7 +194,7 @@ def parse_boamp_data(api_response, date):
             except:
                 duree = ''
             try:
-                offresrecues = donnees.get('ATTRIBUTION', {}).get('DECISION', {}).get('RENSEIGNEMENT', {}).get('NB_OFFRE_RECU', 'Non renseigné')
+                offresrecues = donnees.get('ATTRIBUTION', {}).get('DECISION', {}).get('RENSEIGNEMENT', {}).get('NB_OFFRE_RECU', '')
             except:
                 offresrecues = ''
             try:
@@ -186,111 +214,109 @@ def parse_boamp_data(api_response, date):
                 annonce_lie = ''
             urlavis = record.get('url_avis', 'Not available')
 
+            message=''
 
-            if nature in ['RECTIFICATIF', 'APPEL_OFFRE']:
-                # Add text to the message
-                message = '<strong>Acheteur : </strong>' + acheteur + '\n\n'
-                message += '<strong>Services : </strong>' + services_list + '\n\n'
-                message += '<strong>Type de marché :</strong>' + typemarche + '\n\n' 
-                if valeur:
-                    message += '<strong>Valeur du marché : </strong>' + f"{int(valeur):,}" + ' ' + devise + '\n\n'
-                if lots:
-                    message += '<strong>Marché alloti : ✅</strong>\n\n'
-                    for lot in lots_data:
-                        intitule = lot.get('INTITULE')
-                        num = lot.get('NUM')
-                        info = lot.get('INFO_COMPL')
-                        message += '\tLot '+ num + " : " +  intitule + '\n\n'
-                        message += '\t\t'+info+'\n\n'
-                if deadline:
-                    message += '<strong>Deadline : </strong>' + deadline + '\n\n' 
-                if valeur:
-                    message += '<strong>Valeur du marché : </strong>' + valeur + ' ' + devise + '\n\n'
-                if duree:
-                    message +='<strong>Durée du marché (en mois) : </strong>' + duree + '\n\n'
-                if annonce_lie:
-                    annonce_lie_list= ', '.join(annonce_lie)
-                    message += '<strong>Annonce(s) liée(s) : </strong>' + annonce_lie_list + '\n\n'
-                message += '<strong>Avis : </strong>: ' + urlavis + '\n\n'
 
-                # Add a title to the message
-                title = status + ' ' + objet
-                ## Send message 
-                # tomsteeams(nature,title,message)
+            # Add text to the message
+            message = '<strong>Acheteur : </strong>' + acheteur + '\n\n'
+            if ref:
+                message += '<strong>Référence marché : </strong>' + ref + '\n\n'
+            message += '<strong>Services : </strong>' + services_list + '\n\n'
+            message += '<strong>Type de marché : </strong>' + typemarche + '\n\n' 
+            if valeur:
+                message += '<strong>Valeur du marché : </strong>' + valeur + ' ' + devise + '\n\n'
+            if lots:
+                message += '<strong>Marché alloti : </strong>✅\n\n'
+                for lot in lots_data:
+                    intitule = lot.get('INTITULE')
+                    num = lot.get('NUM')
+                    info = lot.get('INFO_COMPL')
+                    message += '\tLot '+ num + " : " +  intitule + '\n\n'
+                    message += '\t\t'+info+'\n\n'
+            if deadline:
+                message += '<strong>Deadline : </strong>' + deadline + ' ('+ str(delai)+ ' jours)\n\n' 
+            if offresrecues:
+                message += '<strong>Offre(s) reçue(s) : </strong>' + offresrecues + '\n\n'
+            if titulaires:
+                titulaires_list = ', '.join(titulaires)
+                message += '<strong>Titulaire(s) : </strong>' + titulaires_list + '\n\n'
+            if duree:
+                message +='<strong>Durée du marché (en mois) : </strong>' + duree + '\n\n'
+            if annonce_lie:
+                annonce_lie_list= ', '.join(annonce_lie)
+                message += '<strong>Annonce(s) liée(s) : </strong>' + annonce_lie_list + '\n\n'
+            message += '<strong>Avis : </strong>: ' + urlavis + '\n\n'
                 
-            if nature in ['ATTRIBUTION']:
-                message = '<strong>Acheteur : </strong>' + acheteur + '\n\n'
-                message += '<strong>Services : </strong>' + services_list + '\n\n'
-                message += '<strong>Type de marché :</strong>' + typemarche + '\n\n' 
-                if valeur:
-                    message += '<strong>Valeur du marché : </strong>' + valeur + ' ' + devise + '\n\n'
-                if lots:
-                    message += '<strong>Marché alloti : ✅</strong>\n\n'
-                    for lot in lots_data:
-                        intitule = lot.get('INTITULE')
-                        num = lot.get('NUM')
-                        info = lot.get('INFO_COMPL')
-                        message += '\t\tLot '+ num + " : " +  intitule + '\n\n'
-                        message += '\t\t\t\t'+info+'\n\n'
-                if offresrecues:
-                    message += '<strong>Offre(s) reçue(s) : </strong>' + offresrecues + '\n\n'
-                if titulaires:
-                    titulaires_list = ', '.join(titulaires)
-                    message += '<strong>Titulaire(s) : </strong>' + titulaires_list + '\n\n'
-                if duree:
-                    message +='<strong>Durée du marché (en mois) : </strong>' + duree + '\n\n'
-                if annonce_lie:
-                    annonce_lie_list= ', '.join(annonce_lie)
-                    message += '<strong>Annonce(s) liée(s) : </strong>' + annonce_lie_list + '\n\n'
-                message += '<strong>Avis : </strong>: ' + urlavis + '\n\n'
-
-                # Add a title to the message
-                title = status + ' ' + objet
-                ## Send message 
-                if ID == '24-377':
-                    tomsteeams(nature,title,message)
-                #print(message)
-
+            
+            # Add a title to the message
+            title = status + '  ' + objet
+            # Send MsTeams Card
+            if not debug_mode:
+                tomsteeams(nature,title,message)
+            else:
+                print(title + '\n' + remove_html_tags(message.replace('\n\n','\n')))
+                print('-----------------------------------------------')
             
     else:
         errlog("No results found")
 
-print('''
-  ,---.    .---.    .--.           ,---.   
- | .-.\  / .-. )  / /\ \ |\    /| | .-.\  
- | |-' \ | | |(_)/ /__\ \|(\  / | | |-' ) 
- | |--. \| | | | |  __  |(_)\/  | | |--'  
- | |`-' /\ `-' / | |  |)|| \  / | | |     
- /( `--'  )---'  |_|  (_)| |\/| | /(      
-(__)     (_)             '-'  '-'(__) 
-        by Julien Mousqueton / Computacenter         
-      ''')
 
 
-# Load the .env file
-load_dotenv()
+if __name__ == "__main__":
+    print('''
+    ,---.    .---.    .--.           ,---.   
+    | .-.\  / .-. )  / /\ \ |\    /| | .-.\  
+    | |-' \ | | |(_)/ /__\ \|(\  / | | |-' ) 
+    | |--. \| | | | |  __  |(_)\/  | | |--'  
+    | |`-' /\ `-' / | |  |)|| \  / | | |     
+    /( `--'  )---'  |_|  (_)| |\/| | /(      
+    (__)     (_)             '-'  '-'(__) 
+            by Julien Mousqueton / Computacenter         
+        ''')
+    # Setup argument parser
+    parser = argparse.ArgumentParser(description="Script to fetch and process BOAMP data")
+    parser.add_argument("-d", "--debug", action="store_true", help="Enable debug mode (does not send messages to Teams)")
+    parser.add_argument("-n", "--now", action="store_true", help="Force to scan today)")
 
-# Use environment variables
-webhook_marche = os.getenv('WEBHOOK_MARCHE')
-webhook_attribution = os.getenv('WEBHOOK_ATTRIBUTION')
+    # Parse arguments
+    args = parser.parse_args()
 
-if not webhook_marche or not webhook_attribution:
-    errlog("Erreur: Au moins une des deux webhook URLs est manquante ou vide.")
-    exit(1)
+    # Main script execution
+    debug_mode=args.debug
+    today_mode=args.now
 
-today = datetime.now()
+    if debug_mode:
+        stdlog("DEBUG MODE")
 
-# Calculate yesterday's date
-yesterday = today - timedelta(days=1)
+    if today_mode:
+        stdlog("TODAY MODE")
 
-# Format yesterday's date to the desired format
-formatted_yesterday = yesterday.strftime("%Y-%m-%d")
+    # Load the .env file
+    load_dotenv()
 
-stdlog('Fetching BOAMP pour le  ' + formatted_yesterday)
-data = fetch_boamp_data(formatted_yesterday)
-if data:
-    stdlog('Parsing BOAMP pour le ' + formatted_yesterday)
-    parse_boamp_data(data, formatted_yesterday)
-else:
-    errlog('Pas de donnée à parser')
-stdlog('Fin !')
+    # Use environment variables
+    webhook_marche = os.getenv('WEBHOOK_MARCHE')
+    webhook_attribution = os.getenv('WEBHOOK_ATTRIBUTION')
+
+    if not webhook_marche or not webhook_attribution:
+        errlog("Erreur: Au moins une des deux webhook URLs est manquante ou vide.")
+        exit(1)
+
+    today = datetime.now()
+
+    # Calculate yesterday's date
+    yesterday = today - timedelta(days=1)
+
+    # Format yesterday's date to the desired format
+    formatted_yesterday = yesterday.strftime("%Y-%m-%d")
+    if today_mode:
+        formatted_yesterday = today.strftime("%Y-%m-%d")
+
+    stdlog('Récuperation des données du BOAMP pour le  ' + formatted_yesterday)
+    data = fetch_boamp_data(formatted_yesterday)
+    if data:
+        stdlog('Analyse des données du BOAMP pour le ' + formatted_yesterday)
+        parse_boamp_data(data, formatted_yesterday)
+    else:
+        errlog('Pas de donnée à analyser')
+    stdlog('Fin !')

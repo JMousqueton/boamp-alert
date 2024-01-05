@@ -48,10 +48,34 @@ WEBHOOK_ATTRIBUTION=<URL du Webhook Microsoft Teams pour les annonces d'attribut
 - Exécutez le script :
 
 ```
-python3  boamp.py
+python3 boamp.py
 ```
 Le script récupérera automatiquement les données pour la journée précédente.
 Des notifications contenant des informations détaillées seront envoyées aux canaux Microsoft Teams configurés.
+
+## Options 
+
+```
+python3 boamp.py -h
+
+    ,---.    .---.    .--.           ,---.   
+    | .-.\  / .-. )  / /\ \ |\    /| | .-.\  
+    | |-' \ | | |(_)/ /__\ \|(\  / | | |-' ) 
+    | |--. \| | | | |  __  |(_)\/  | | |--'  
+    | |`-' /\ `-' / | |  |)|| \  / | | |     
+    /( `--'  )---'  |_|  (_)| |\/| | /(      
+    (__)     (_)             '-'  '-'(__) 
+            by Julien Mousqueton / Computacenter         
+        
+usage: boamp.py [-h] [-d] [-n]
+
+Script to fetch and process BOAMP data
+
+options:
+  -h, --help   show this help message and exit
+  -d, --debug  Enable debug mode (does not send messages to Teams)
+  -n, --now    Force to scan today)
+  ```
 
 ## Exemple
 
