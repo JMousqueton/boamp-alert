@@ -11,8 +11,6 @@ import re
 import os
 from dotenv import load_dotenv
 
-descripteur_list = os.getenv('DESCRIPTEURS', '').split(',')
-
 # Configure logging
 logging.basicConfig(
     format='%(asctime)s,%(msecs)d %(levelname)-8s %(message)s',
@@ -46,7 +44,7 @@ def fetch_boamp_data(date):
     """
     year, month, day = date.split('-')
     search = "date_format(dateparution, 'yyyy') = '" + year + "' and date_format(dateparution, 'MM') = '"+month+"' and date_format(dateparution, 'dd') = '"+day+"' and (descripteur_libelle like 'Informatique%' " 
-    for word in descripteur_list:
+    for word in descripteurs_list:
         search += " or descripteur_libelle = '"+word+"'" 
     search += ")"
     url = "https://www.boamp.fr/api/explore/v2.1/catalog/datasets/boamp/records"
@@ -54,7 +52,8 @@ def fetch_boamp_data(date):
         "select": "*",
         "where": f"{search}"
     }
-
+    if debug_mode:
+        stdlog(url+search)
     try:
         response = requests.get(url, params=params)
         response.raise_for_status()
@@ -101,8 +100,7 @@ def tomsteeams(nature,title,message):
     myTeamsMessage.title(title)
     # Send the message
     try:
-        # myTeamsMessage.send()
-        print('SENT !!!!')
+        myTeamsMessage.send()
     except pymsteams.TeamsWebhookException as e:
         print(f"Erreur à l'envoie du message MSTeams : {e}")
 
@@ -254,7 +252,7 @@ def parse_boamp_data(api_response, date):
             if not debug_mode:
                 tomsteeams(nature,title,message)
             else:
-                print(title + '\n' + remove_html_tags(message.replace('\n\n','\n')))
+                print('['+ID+'] ' + title + '\n' + remove_html_tags(message.replace('\n\n','\n')))
                 print('-----------------------------------------------')
             
     else:
@@ -297,6 +295,11 @@ if __name__ == "__main__":
     # Use environment variables
     webhook_marche = os.getenv('WEBHOOK_MARCHE')
     webhook_attribution = os.getenv('WEBHOOK_ATTRIBUTION')
+
+    ## Get Keywords 
+    descripteurs_list = os.getenv('DESCRIPTEURS', '').split(',')
+    if debug_mode:
+        stdlog(' DESCRIPTEURS :' + os.getenv('DESCRIPTEURS', ''))
 
     if not webhook_marche or not webhook_attribution:
         errlog("Erreur: Au moins une des deux webhook URLs est manquante ou vide.")
