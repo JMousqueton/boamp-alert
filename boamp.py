@@ -129,6 +129,10 @@ def parse_boamp_data(api_response, date):
     :param date: Date string used for the filename.
     """
     total_count = api_response.get('total_count', 0)
+    if total_count == 0:
+        stdlog('Pas de nouvel avis pour ' + date)
+        return
+      
     stdlog(str(total_count) + ' enregistrement(s) récupéré(s)')
     i=0 
     # Write the response to a file
@@ -142,12 +146,9 @@ def parse_boamp_data(api_response, date):
     except IOError as e:
         errlog(f"File I/O error: {e}")
 
-    if total_count == 0:
-        stdlog('Pas de nouvel avis pour ' + date)
-        return
 
     if total_count > 99:
-        errlog("Trop de résultat !!!")
+        stdlog("Plus de 100 résultats !!!")
     stdlog('Extraction des données ...')
     if 'results' in api_response and api_response['results']:
         for record in api_response['results']:
