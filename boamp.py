@@ -44,7 +44,7 @@ def remove_html_tags(text):
     return re.sub(clean, '', text)
 
 
-def fetch_boamp_data(date, attribution_only=False):
+def fetch_boamp_data(date, select_option=None):
     """
     Fetches data from the BOAMP API for a given date.
     :param date: A string representing the date in the format 'yyyy-MM-dd'.
@@ -56,8 +56,13 @@ def fetch_boamp_data(date, attribution_only=False):
     for word in descripteurs_list:
         search += " or descripteur_libelle = '"+word+"'" 
     search += ")"
-    if attribution_only:
+    if select_option == 'attribution':
         search += " and nature='ATTRIBUTION'"
+        stdlog('(!) Seulement les attributions')
+    elif select_option == 'ao':
+        search += " and nature='APPEL_OFFRE'"
+        stdlog("(!) Seulement les Appels d'Offre")
+    
     url = "https://www.boamp.fr/api/explore/v2.1/catalog/datasets/boamp/records"
     params = {
         "select": "*",
@@ -217,7 +222,12 @@ def parse_boamp_data(api_response, date):
                 target_date = datetime.strptime(deadline, "%Y-%m-%d")
                 current_date = datetime.now()
                 delai = (target_date - current_date).days
-            
+            try:
+                devisetotal = donnees['OBJET']['CARACTERISTIQUES']['VALEUR_TOTALE']['@DEVISE']
+                montanttotal = donnees['OBJET']['CARACTERISTIQUES']['VALEUR_TOTALE']['#text']
+            except:
+                devisetotal = ''
+                montanttotal = ''
             try:
                 ref = donnees['CONDITION_ADMINISTRATIVE']['REFERENCE_MARCHE']
             except:
@@ -271,6 +281,8 @@ def parse_boamp_data(api_response, date):
             message += '<strong>Type de marché : </strong>' + typemarche + '\n\n' 
             if valeur:
                 message += '<strong>Valeur du marché : </strong>' + valeur + ' ' + devise + '\n\n'
+            elif montanttotal:
+                message += '<strong>Valeur du marché : </strong>' + montanttotal + ' ' + devisetotal + '\n\n'
             if lots:
                 message += '<strong>Marché alloti : </strong>✅\n\n'
                 try: 
@@ -337,7 +349,7 @@ if __name__ == "__main__":
     parser.add_argument("-D", "--debug", action="store_true", help="Active le mode debug (aucun message ne sera envoyé à msteams)")
     parser.add_argument("-n", "--now", action="store_true", help="Force la date du jour au lieu de J-1")
     parser.add_argument("-d", "--date", type=str, help="Spécifie la date du scan au format yyyy-mm-dd", metavar="YYYY-MM-DD")
-    parser.add_argument("-a", "--attribution-only", action="store_true", help="Filtre uniquement les avis d'attribution")
+    parser.add_argument("-s", "--select", type=str, choices=['attribution', 'ao'], help="Selection la nature de l'avis : 'attribution' ou 'ao' (Appel d'Offre)")
 
     # Parse arguments
     args = parser.parse_args()
@@ -346,6 +358,7 @@ if __name__ == "__main__":
     debug_mode=args.debug
     today_mode=args.now
     specified_date = args.date
+    select_option = args.select 
 
     if debug_mode:
         stdlog("DEBUG MODE")
@@ -379,7 +392,7 @@ if __name__ == "__main__":
         date_to_process = yesterday.strftime("%Y-%m-%d")
 
     stdlog('Récuperation des données du BOAMP pour le ' + date_to_process)
-    data = fetch_boamp_data(date_to_process, args.attribution_only)
+    data = fetch_boamp_data(date_to_process, select_option)
     if data:
         stdlog('Analyse des données du BOAMP pour le ' + date_to_process)
         parse_boamp_data(data, date_to_process)
