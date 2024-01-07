@@ -67,7 +67,7 @@ python3 boamp.py -h
     (__)     (_)             '-'  '-'(__) 
             par Julien Mousqueton / Computacenter         
         
-usage: boamp.py [-h] [-D] [-n] [-d YYYY-MM-DD] [-a]
+usage: boamp.py [-h] [-D] [-n] [-d YYYY-MM-DD] [-s {attribution,ao}]
 
 Script to fetch and process BOAMP data
 
@@ -77,8 +77,8 @@ options:
   -n, --now             Force la date du jour au lieu de J-1
   -d YYYY-MM-DD, --date YYYY-MM-DD
                         Spécifie la date du scan au format yyyy-mm-dd
-  -a, --attribution-only
-                        Filtre uniquement les avis d'attribution
+  -s {attribution,ao}, --select {attribution,ao}
+                        Selection de la nature de l'avis : 'attribution' ou 'ao' (Appel d'Offre)
   ```
 
 ## Exemple

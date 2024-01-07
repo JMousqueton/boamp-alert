@@ -3,7 +3,7 @@
 
 __author__ = "Julien Mousqueton"
 __email__ = "julien.mousqueton_AT_computacenter.com"
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 # Import for necessary Python modules
 import requests
@@ -14,8 +14,11 @@ import logging
 import argparse
 import re # For  removing HTML tag in debug mode 
 
+# For checking python version
+import sys
+
 #For reading .env 
-import os
+import os 
 from dotenv import load_dotenv
 
 # Configure logging
@@ -330,7 +333,7 @@ def parse_boamp_data(api_response, date):
     else:
         errlog("No results found")
 
-    stdlog(str(i) + ' message(s) envoyé(s) dans teams')
+    stdlog(str(i) + ' message(s) envoyé(s) dans msteams')
 
 
 if __name__ == "__main__":
@@ -344,12 +347,18 @@ if __name__ == "__main__":
     (__)     (_)             '-'  '-'(__) 
             par Julien Mousqueton / Computacenter         
         ''')
+    
+    if sys.version_info < (3, 10):
+        stdlog("Python version is below 3.10. You need Python 3.10 or higher to use the match function.")
+        exit(1)
+
+
     # Setup argument parser
     parser = argparse.ArgumentParser(description="Script to fetch and process BOAMP data")
     parser.add_argument("-D", "--debug", action="store_true", help="Active le mode debug (aucun message ne sera envoyé à msteams)")
     parser.add_argument("-n", "--now", action="store_true", help="Force la date du jour au lieu de J-1")
     parser.add_argument("-d", "--date", type=str, help="Spécifie la date du scan au format yyyy-mm-dd", metavar="YYYY-MM-DD")
-    parser.add_argument("-s", "--select", type=str, choices=['attribution', 'ao'], help="Selection la nature de l'avis : 'attribution' ou 'ao' (Appel d'Offre)")
+    parser.add_argument("-s", "--select", type=str, choices=['attribution', 'ao'], help="Selection de la nature de l'avis : 'attribution' ou 'ao' (Appel d'Offre)")
 
     # Parse arguments
     args = parser.parse_args()
