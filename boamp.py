@@ -65,6 +65,9 @@ def fetch_boamp_data(date, select_option=None):
     elif select_option == 'ao':
         search += " and nature='APPEL_OFFRE'"
         stdlog("(!) Seulement les Appels d'Offre")
+    elif select_option == 'rectificatif':
+        search += " and nature='RECTIFICATIF'"
+        stdlog("(!) Seulement les rectificatifs d'appels d'offre")
     
     url = "https://www.boamp.fr/api/explore/v2.1/catalog/datasets/boamp/records"
     params = {
@@ -104,7 +107,7 @@ def determine_status(nature):
             status = "🟢"
         case "RECTIFICATIF":
             status = "🟠"
-        case "R\u00e9sultat de march\u00e9":
+        case "R\u00e9sultat de march\u00e9":   # Vérifier la pertinence 
             status = "🏆"
         case "ATTRIBUTION":
             status = "🏆"
@@ -358,7 +361,7 @@ if __name__ == "__main__":
     parser.add_argument("-D", "--debug", action="store_true", help="Active le mode debug (aucun message ne sera envoyé à msteams)")
     parser.add_argument("-n", "--now", action="store_true", help="Force la date du jour au lieu de J-1")
     parser.add_argument("-d", "--date", type=str, help="Spécifie la date du scan au format yyyy-mm-dd", metavar="YYYY-MM-DD")
-    parser.add_argument("-s", "--select", type=str, choices=['attribution', 'ao'], help="Selection de la nature de l'avis : 'attribution' ou 'ao' (Appel d'Offre)")
+    parser.add_argument("-s", "--select", type=str, choices=['attribution', 'ao', 'rectificatif'], help="Selection de la nature de l'avis : 'attribution', 'rectificatif' ou 'ao' (Appel d'Offre)")
 
     # Parse arguments
     args = parser.parse_args()
