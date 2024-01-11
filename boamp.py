@@ -284,6 +284,8 @@ def parse_boamp_data(api_response, date):
             if ref:
                 message += '<strong>Référence marché : </strong>' + ref + '\n\n'
             message += '<strong>Services : </strong>' + services_list + '\n\n'
+            if typemarche == "Marchés entre 90 k€ et seuils européens" and seuilmarches: 
+                typemarche = typemarche.replace('seuils européens',seuilmarches)
             message += '<strong>Type de marché : </strong>' + typemarche + '\n\n' 
             if valeur:
                 message += '<strong>Valeur du marché : </strong>' + valeur + ' ' + devise + '\n\n'
@@ -386,6 +388,9 @@ if __name__ == "__main__":
     descripteurs_list = os.getenv('DESCRIPTEURS', '').split(',')
     if debug_mode:
         stdlog('DESCRIPTEURS : ' + os.getenv('DESCRIPTEURS', ''))
+
+    seuilmarches = os.getenv('SEUILMARCHES','')
+
 
     if not webhook_marche or not webhook_attribution:
         errlog("Erreur: Au moins une des deux webhook URLs est manquante ou vide.")
