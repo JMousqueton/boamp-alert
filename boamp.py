@@ -254,10 +254,6 @@ def parse_boamp_data(api_response, date):
             except:
                 duree = ''
             try:
-                offresrecues = donnees.get('ATTRIBUTION', {}).get('DECISION', {}).get('RENSEIGNEMENT', {}).get('NB_OFFRE_RECU', '')
-            except:
-                offresrecues = ''
-            try:
                 if 'DIV_EN_LOTS' in donnees['OBJET'] and 'OUI' in donnees['OBJET']['DIV_EN_LOTS']:
                     lots = True 
                 else:
@@ -266,13 +262,23 @@ def parse_boamp_data(api_response, date):
                     lots = False
             if lots:
                 lots_data = donnees['OBJET'].get('LOTS', {}).get('LOT', [])
-                nblots = len(lots_data)            
+                nblots = len(lots_data)        
+            try:
+                offresrecues = donnees.get('ATTRIBUTION', {}).get('DECISION', {}).get('RENSEIGNEMENT', {}).get('NB_OFFRE_RECU', '')
+            except:
+                try: 
+                    if nblots:
+                       offresrecues = [f"Lot {index + 1} : {item['RENSEIGNEMENT']['NB_OFFRE_RECU']}" for index, item in enumerate(donnees.get("ATTRIBUTION", {}).get("DECISION", []))]
+                       #[item["RENSEIGNEMENT"]["NB_OFFRE_RECU"] for item in donnees.get("ATTRIBUTION", {}).get("DECISION", [])]
+                       offresrecues = ", ".join(offresrecues)
+                       print('---------------> ', offresrecues)
+                except:
+                    offresrecues = ''    
             try: 
                 annonce_lie = record.get('annonce_lie', [])
             except: 
                 annonce_lie = ''
             urlavis = record.get('url_avis', 'Not available')
-
             
 
             message=''
