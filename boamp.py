@@ -68,10 +68,9 @@ def fetch_boamp_data(date, select_option=None):
     :return: JSON response data.
     """
     year, month, day = date.split('-')
-    search = "date_format(dateparution, 'yyyy') = '" + year + "' and date_format(dateparution, 'MM') = '"+month+"' and date_format(dateparution, 'dd') = '"+day+"' and (descripteur_libelle like 'Informatique%' " 
-    for word in descripteurs_list:
-        search += " or descripteur_libelle = '"+word+"'" 
-    search += ")"
+    search = "date_format(dateparution, 'yyyy') = '" + year + "' and date_format(dateparution, 'MM') = '"+month+"' and date_format(dateparution, 'dd') = '"+day+"' and ("
+    query = ' OR '.join([f'dc = "{code}"' for code in descripteurs_list])
+    search += query + ")"
     if select_option == 'attribution':
         search += " and nature='ATTRIBUTION'"
         stdlog('(!) Seulement les attributions')
@@ -519,6 +518,7 @@ if __name__ == "__main__":
 
     ## Get Keywords 
     descripteurs_list = os.getenv('DESCRIPTEURS', '').split(',')
+    descripteurs_list = [word.strip() for word in descripteurs_list]
     if debug_mode:
         stdlog('DESCRIPTEURS : ' + os.getenv('DESCRIPTEURS', ''))
 
