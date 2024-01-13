@@ -3,7 +3,7 @@
 
 __author__ = "Julien Mousqueton"
 __email__ = "julien.mousqueton_AT_computacenter.com"
-__version__ = "1.0.1"
+__version__ = "1.1.0"
 
 # Import for necessary Python modules
 import requests
@@ -198,7 +198,6 @@ def parse_boamp_data(api_response, date):
             except:
                 pass
             
-
             ## Attaque des données JSON du champs donnees
             donnees_brut = record.get('donnees',{})
             donnees = json.loads(donnees_brut)
@@ -279,7 +278,6 @@ def parse_boamp_data(api_response, date):
                 annonce_lie = ''
             urlavis = record.get('url_avis', 'Not available')
             
-
             message=''
 
             # Create the message for msteams card 
@@ -331,14 +329,33 @@ def parse_boamp_data(api_response, date):
             message += '<strong>Avis : </strong>: ' + urlavis + '\n\n'
             
             # Add a title to the message
+            logomontant = ''
             if montanttotal and nature == "APPEL_OFFRE":
-                if float(montanttotal) > montant3:
-                    status += '  💰💰💰'
-                elif float(montanttotal) > montant2:
-                    status += '  💰💰'
-                elif float(montanttotal) > montant1:
-                    status += '  💰'
-            title = '['+ID+'] ' + status + '  ' + objet
+                if float(montanttotal) > float(montant3):
+                    logomontant += '💰💰💰'
+                elif float(montanttotal) > float(montant2):
+                    logomontant += '💰💰'
+                elif float(montanttotal) > float(montant1):
+                    logomontant += '💰'
+                # Disable since no flag in Windows emoji :(  
+                #elif typemarche == "Marchés européens":
+                #    logomontant += '🇪🇺'
+            elif "Marchés entre" in typemarche:
+                logomontant += '⬇️'
+            logoservice= ''
+            if "Maintenance" in objet.lower():
+                logoservice += '🧰'
+            if "logiciel" in services_list.lower() or "progiciel" in services_list.lower():
+                logoservice += '💿'
+            if "prestations" in services_list.lower():
+                logoservice += '👥'
+            if logomontant and logoservice:
+                logostring = '  (' + logomontant + ' | ' + logoservice +') '
+            elif logomontant and not logoservice:
+                logostring = '  (' + logomontant  +') '
+            elif not logomontant and logoservice:
+                logostring = '  (' + logoservice + ') '
+            title = '['+ID+'] ' + status + logostring + objet
             # Send MsTeams Card
             if not debug_mode:
                 tomsteeams(nature,title,message)
@@ -346,13 +363,33 @@ def parse_boamp_data(api_response, date):
             else:
                 print(title + '\n' + remove_html_tags(message.replace('\n\n','\n')))
                 print('-----------------------------------------------')
-            
     else:
         errlog("No results found")
 
     stdlog(str(i) + ' message(s) envoyé(s) dans msteams')
 
 
+def showlegend():
+    ''' 
+    affiche la legende 
+    '''
+    print('Legende : ')
+    print('')
+    print('💰     : marché supérieur à ' +  str(montant1) + ' €')
+    print('💰💰   : marché supérieur à ' +  str(montant2) + ' €')
+    print('💰💰💰 : marché supérieur à ' +  str(montant3) + ' €')
+    print('⬇️      : marché entre 90k€ et ' + seuilmarches)
+    print('💿     : marché identifié comme un marché logiciel')
+    print('🧰     : marché identifié comme un marché de maintenance')
+    print('👥     : marché identidié comme un marché de prestation')
+    print('🟢      : Avis de marché')
+    print('🟠      : Modification d\'un avis de marché')
+    print('🏆     : Avis d\'attributiion')
+
+
+'''
+Main Program  
+'''
 if __name__ == "__main__":
     print('''
     ,---.    .---.    .--.           ,---.   
@@ -369,14 +406,13 @@ if __name__ == "__main__":
         stdlog("Python version is below 3.10. You need Python 3.10 or higher to use the match function.")
         exit(1)
 
-
     # Setup argument parser
     parser = argparse.ArgumentParser(description="Script to fetch and process BOAMP data")
     parser.add_argument("-D", "--debug", action="store_true", help="Active le mode debug (aucun message ne sera envoyé à msteams)")
     parser.add_argument("-n", "--now", action="store_true", help="Force la date du jour au lieu de J-1")
     parser.add_argument("-d", "--date", type=str, help="Spécifie la date du scan au format yyyy-mm-dd", metavar="YYYY-MM-DD")
     parser.add_argument("-s", "--select", type=str, choices=['attribution', 'ao', 'rectificatif'], help="Selection de la nature de l'avis : 'attribution', 'rectificatif' ou 'ao' (Appel d'Offre)")
-
+    parser.add_argument("-l", "--legende", action="store_true", help="Affiche la legende des titres")
     # Parse arguments
     args = parser.parse_args()
 
@@ -385,7 +421,8 @@ if __name__ == "__main__":
     today_mode=args.now
     specified_date = args.date
     select_option = args.select 
-
+    legende = args.legende
+    
     if debug_mode:
         stdlog("DEBUG MODE")
 
@@ -396,17 +433,20 @@ if __name__ == "__main__":
     webhook_marche = os.getenv('WEBHOOK_MARCHE')
     webhook_attribution = os.getenv('WEBHOOK_ATTRIBUTION')
 
-    montant1 = float(os.getenv('MONTANT1','1000000'))
-    montant2 = float(os.getenv('MONTANT2','2000000'))
-    montant3 = float(os.getenv('MONTANT3','4000000'))
+    montant1 = "{:.2f}".format(float(os.getenv('MONTANT1','1000000')))
+    montant2 = "{:.2f}".format(float(os.getenv('MONTANT2','2000000')))
+    montant3 = "{:.2f}".format(float(os.getenv('MONTANT3','4000000')))
+
+    seuilmarches = os.getenv('SEUILMARCHES','')
+
+    if legende:
+        showlegend()
+        exit()
 
     ## Get Keywords 
     descripteurs_list = os.getenv('DESCRIPTEURS', '').split(',')
     if debug_mode:
         stdlog('DESCRIPTEURS : ' + os.getenv('DESCRIPTEURS', ''))
-
-    seuilmarches = os.getenv('SEUILMARCHES','')
-
 
     if not webhook_marche or not webhook_attribution:
         errlog("Erreur: Au moins une des deux webhook URLs est manquante ou vide.")

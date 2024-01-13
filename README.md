@@ -82,6 +82,34 @@ options:
 
   ```
 
+## Legende 
+
+```
+python3 boamp.py --legende
+
+    ,---.    .---.    .--.           ,---.   
+    | .-.\  / .-. )  / /\ \ |\    /| | .-.\  
+    | |-' \ | | |(_)/ /__\ \|(\  / | | |-' ) 
+    | |--. \| | | | |  __  |(_)\/  | | |--'  
+    | |`-' /\ `-' / | |  |)|| \  / | | |     
+    /( `--'  )---'  |_|  (_)| |\/| | /(      
+    (__)     (_)             '-'  '-'(__) 
+            par Julien Mousqueton / Computacenter         
+        
+Legende : 
+
+💰     : marché supérieur à 1000000.00 €
+💰💰   : marché supérieur à 2000000.00 €
+💰💰💰 : marché supérieur à 5000000.00 €
+⬇️     : marché entre 90k€ et 221 k€
+💿     : marché identifié comme un marché logiciel
+🧰     : marché identifié comme un marché de maintenance
+👥     : marché identidié comme un marché de prestation
+🟢     : Avis de marché
+🟠     : Modification d'un avis de marché
+🏆     : Avis d'attributiion
+```
+
 ## Exemple
 
 ![screenshot](.github/screenshot.png)
