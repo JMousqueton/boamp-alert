@@ -271,7 +271,6 @@ def parse_boamp_data(api_response, date):
                        offresrecues = [f"Lot {index + 1} : {item['RENSEIGNEMENT']['NB_OFFRE_RECU']}" for index, item in enumerate(donnees.get("ATTRIBUTION", {}).get("DECISION", []))]
                        #[item["RENSEIGNEMENT"]["NB_OFFRE_RECU"] for item in donnees.get("ATTRIBUTION", {}).get("DECISION", [])]
                        offresrecues = ", ".join(offresrecues)
-                       print('---------------> ', offresrecues)
                 except:
                     offresrecues = ''    
             try: 
@@ -332,6 +331,13 @@ def parse_boamp_data(api_response, date):
             message += '<strong>Avis : </strong>: ' + urlavis + '\n\n'
             
             # Add a title to the message
+            if montanttotal and nature == "APPEL_OFFRE":
+                if float(montanttotal) > montant3:
+                    status += '  💰💰💰'
+                elif float(montanttotal) > montant2:
+                    status += '  💰💰'
+                elif float(montanttotal) > montant1:
+                    status += '  💰'
             title = '['+ID+'] ' + status + '  ' + objet
             # Send MsTeams Card
             if not debug_mode:
@@ -389,6 +395,10 @@ if __name__ == "__main__":
     # Use environment variables
     webhook_marche = os.getenv('WEBHOOK_MARCHE')
     webhook_attribution = os.getenv('WEBHOOK_ATTRIBUTION')
+
+    montant1 = float(os.getenv('MONTANT1','1000000'))
+    montant2 = float(os.getenv('MONTANT2','2000000'))
+    montant3 = float(os.getenv('MONTANT3','4000000'))
 
     ## Get Keywords 
     descripteurs_list = os.getenv('DESCRIPTEURS', '').split(',')
