@@ -86,16 +86,27 @@ options:
 ## Legende      
 
 💰      Marché supérieur à 1M €
+
 💰💰    Marché supérieur à 2M €
+
 💰💰💰  Marché supérieur à 5M €
+
 ⬇️       Marché entre 90k€ et 221 k€
+
 💿      Marché identifié comme un marché **logiciel**
+
 🧰      Marché identifié comme un marché de **maintenance**
+
 👥      Marché identidié comme un marché de **prestation de service**
+
 💻      Marché identidié comme un marché de **matériel**
+
 🟢       Avis de marché
+
 🟠       Modification d'un avis de marché
+
 🏆      Avis d'attribution
+
 
 
 ## Exemple

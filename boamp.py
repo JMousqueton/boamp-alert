@@ -170,15 +170,13 @@ def parse_boamp_data(api_response, date):
     except IOError as e:
         errlog(f"File I/O error: {e}")
 
-
     if total_count > 99:
         stdlog("Plus de 100 résultats !!!")
     stdlog('Extraction des données ...')
     if 'results' in api_response and api_response['results']:
         for record in api_response['results']:
-            
             """
-            Grab all data in variable  
+            Grab all data in variables 
             """
             nature = record.get('nature')
             status = determine_status(nature)
@@ -188,9 +186,7 @@ def parse_boamp_data(api_response, date):
             services = record.get('descripteur_libelle')
             services_clean = ', '.join(services)
             services_list= services_clean.replace('Informatique (','').replace(')','')
-            
             pubdate =  record.get('dateparution', 'Non disponible')
-             
             typemarche = record.get('famille_libelle', 'Non disponible')
             devise = ''
             try:
@@ -210,11 +206,9 @@ def parse_boamp_data(api_response, date):
                 deadline = date_object.strftime("%Y-%m-%d")
             except:
                 pass
-            
             ## Attaque des données JSON du champs donnees
             donnees_brut = record.get('donnees',{})
             donnees = json.loads(donnees_brut)
-
             if not titulaires:
                 try:
                     titulaires_list= donnees['ATTRIBUTION']['DECISION']['TITULAIRE']
@@ -292,7 +286,6 @@ def parse_boamp_data(api_response, date):
             urlavis = record.get('url_avis', 'Not available')
             
             message=''
-
             # Create the message for msteams card 
             if pubdate:
                 message='<strong>' + pubdate + '</strong>\n\n'
@@ -373,7 +366,6 @@ def parse_boamp_data(api_response, date):
                 logoservice = " ".join(logoservices_list)
                 logostring = '  (' + logoservice + ') '
             title = '['+ID+'] ' + status + logostring + objet
-            
             # Send MsTeams Card
             if not debug_mode:
                 tomsteeams(nature,title,message)
@@ -409,7 +401,7 @@ def showlegend(debug=False):
         tomsteeams('LEGENDE',title,message)
         stdlog('Publication de la légende')
     else:
-        print('Légende :\n\n')
+        print('Légende :\n')
         print(remove_html_tags(message.replace('</td></tr>','\n').replace('</td><td>','\t').replace('</th></tr>','\n').replace('</th><th>','\t')))
 
 '''
