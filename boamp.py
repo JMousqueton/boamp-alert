@@ -3,7 +3,7 @@
 
 __author__ = "Julien Mousqueton"
 __email__ = "julien.mousqueton_AT_computacenter.com"
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 # Import for necessary Python modules
 import requests
@@ -304,9 +304,9 @@ def parse_boamp_data(api_response, date):
                 typemarche = typemarche.replace('seuils européens',seuilmarches)
             message += '<strong>Type de marché : </strong>' + typemarche + '\n\n' 
             if valeur:
-                message += '<strong>Valeur du marché : </strong>' + valeur + ' ' + devise + '\n\n'
+                message += '<strong>Valeur du marché : </strong>' + format_large_number(valeur) + ' ' + devise + '\n\n'
             elif montanttotal:
-                message += '<strong>Valeur du marché : </strong>' + montanttotal + ' ' + devisetotal + '\n\n'
+                message += '<strong>Valeur du marché : </strong>' + format_large_number(montanttotal) + ' ' + devisetotal + '\n\n'
             if lots:
                 message += '<strong>Marché alloti : </strong>✅\n\n'
                 try: 
@@ -323,7 +323,7 @@ def parse_boamp_data(api_response, date):
                         else:   
                             message += '\tLot '+ num + " : " +  intitule + '\n\n'
                         if montantlot:
-                            message += '\t\tValeur du lot : ' + montantlot + ' ' + deviselot + '\n\n'
+                            message += '\t\tValeur du lot : ' + format_large_number(montantlot) + ' ' + deviselot + '\n\n'
                         message += '\t\t'+info+'\n\n'
                 except: 
                     pass
@@ -355,20 +355,25 @@ def parse_boamp_data(api_response, date):
                 #    logomontant += '🇪🇺'
             elif "Marchés entre" in typemarche:
                 logomontant += '⬇️'
-            logoservice= ''
-            if "Maintenance" in objet.lower():
-                logoservice += '🧰'
+            logoservices_list = []
+            if "maintenance" in services_list.lower():
+                logoservices_list.append("🧰")
             if "logiciel" in services_list.lower() or "progiciel" in services_list.lower():
-                logoservice += '💿'
+                logoservices_list.append("💿")
             if "prestations" in services_list.lower():
-                logoservice += '👥'
-            if logomontant and logoservice:
+                logoservices_list.append("👥")
+            if "matériel" in services_list.lower():
+                logoservices_list.append("💻")
+            if logomontant and logoservices_list:
+                logoservice = " ".join(logoservices_list)
                 logostring = '  (' + logomontant + ' | ' + logoservice +') '
-            elif logomontant and not logoservice:
+            elif logomontant and not logoservices_list:
                 logostring = '  (' + logomontant  +') '
-            elif not logomontant and logoservice:
+            elif not logomontant and logoservices_list:
+                logoservice = " ".join(logoservices_list)
                 logostring = '  (' + logoservice + ') '
             title = '['+ID+'] ' + status + logostring + objet
+            
             # Send MsTeams Card
             if not debug_mode:
                 tomsteeams(nature,title,message)
@@ -382,7 +387,7 @@ def parse_boamp_data(api_response, date):
     stdlog(str(i) + ' message(s) envoyé(s) dans msteams')
 
 
-def showlegend(msteams=False):
+def showlegend(debug=False):
     ''' 
     affiche la legende 
     '''
@@ -390,23 +395,22 @@ def showlegend(msteams=False):
     message += '<tr><td>💰</td><td>Marché supérieur à ' +  format_large_number(str(montant1)) + ' €</td></tr>'
     message += '<tr><td>💰💰</td><td>Marché supérieur à ' +  format_large_number(str(montant2)) + ' €</td></tr>'
     message += '<tr><td>💰💰💰</td><td>Marché supérieur à ' +  format_large_number(str(montant3)) + ' €</td></tr>'
-    message += '<tr><td>⬇️</td><td>marché entre 90k€ et ' + seuilmarches + '</td></tr>'
-    message += '<tr><td>💿</td><td>marché identifié comme un marché logiciel</td></tr>'
-    message += '<tr><td>🧰\</td><td>marché identifié comme un marché de maintenance</td></tr>'
-    message += '<tr><td>👥\</td><td>marché identidié comme un marché de prestation</td></tr>'
+    message += '<tr><td>⬇️</td><td>Marché entre 90k€ et ' + seuilmarches + '</td></tr>'
+    message += '<tr><td>💿</td><td>Marché identifié comme un marché <strong>logiciel</strong></td></tr>'
+    message += '<tr><td>🧰</td><td>Marché identifié comme un marché de <strong>maintenance</strong></td></tr>'
+    message += '<tr><td>👥</td><td>Marché identifié comme un marché de <strong>prestation de service</strong></td></tr>'
+    message += '<tr><td>💻</td><td>Marché identifié comme un marché de <strong>matériel</strong></td></tr>'
     message += '<tr><td>🟢</td><td>Avis de marché</td></tr>'
     message += '<tr><td>🟠</td><td>Modification d\'un avis de marché</td></tr>'
-    message += '<tr><td>🏆</td><td>Avis d\'attributiion</td></tr></table>'
+    message += '<tr><td>🏆</td><td>Avis d\'attribution</td></tr></table>'
 
-    if msteams == True:
+    if not debug:
         title = 'Légende'
         tomsteeams('LEGENDE',title,message)
         stdlog('Publication de la légende')
     else:
         print('Légende :\n\n')
-        print(remove_html_tags(message.replace('\n\n','\n')))
-
-
+        print(remove_html_tags(message.replace('</td></tr>','\n').replace('</td><td>','\t').replace('</th></tr>','\n').replace('</th><th>','\t')))
 
 '''
 Main Program  
@@ -463,15 +467,13 @@ if __name__ == "__main__":
 
     legendemonthly= os.getenv('LEGENDE',False) 
 
-    if legende:
-        showlegend(True)
+    if legende: 
+        showlegend(debug_mode)
         exit()
-    
+
     current_date = datetime.now().date()
     if not debug_mode and current_date.day == 1:
         showlegend(True)
-
-
 
     ## Get Keywords 
     descripteurs_list = os.getenv('DESCRIPTEURS', '').split(',')
