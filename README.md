@@ -80,6 +80,8 @@ options:
   -s {attribution,ao,rectificatif}, --select {attribution,ao,rectificatif}
                         Selection de la nature de l'avis : 'attribution', 'rectificatif' ou 'ao' (Appel d'Offre)
   -l, --legende         Publie la légende dans le channel des avis de marché
+  -m, --motclef         Affiche tous les mots clefs
+
 
   ```
 

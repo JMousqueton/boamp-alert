@@ -3,7 +3,7 @@
 
 __author__ = "Julien Mousqueton"
 __email__ = "julien.mousqueton_AT_computacenter.com"
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 
 # Import for necessary Python modules
 import requests
@@ -145,6 +145,41 @@ def tomsteeams(nature,title,message):
     except pymsteams.TeamsWebhookException as e:
         print(f"Erreur à l'envoie du message MSTeams : {e}")
 
+import requests
+
+def fetch_all_results(api_url):
+    limit = 100
+    offset = 0
+    all_results = []
+
+    while True:
+        # Update the offset in the URL
+        current_url = f"{api_url}&offset={offset}"
+
+        # Send an HTTP GET request to the updated URL
+        response = requests.get(current_url)
+
+        # Check if the request was successful (status code 200)
+        if response.status_code == 200:
+            # Parse the JSON response
+            data = response.json()
+
+            # Extract and append results to the list
+            results = data.get('results', [])
+            all_results.extend(results)
+
+            # Check if there are more results
+            if len(results) < limit:
+                break  # No more results, exit the loop
+
+            # Increment the offset for the next request
+            offset += limit
+
+        else:
+            print(f"Failed to retrieve data. Status code: {response.status_code}")
+            break
+
+    return all_results
 
 def parse_boamp_data(api_response, date):
     """
@@ -395,6 +430,8 @@ def showlegend(debug=False):
     message += '<tr><td>🟢</td><td>Avis de marché</td></tr>'
     message += '<tr><td>🟠</td><td>Modification d\'un avis de marché</td></tr>'
     message += '<tr><td>🏆</td><td>Avis d\'attribution</td></tr></table>'
+    current_date = datetime.now().date()
+    message += '<BR><BR>(C) 2022-' + str(current_date.year) + ' Computacenter - Développé par Julien Mousqueton'
 
     if not debug:
         title = 'Légende'
@@ -430,6 +467,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--date", type=str, help="Spécifie la date du scan au format yyyy-mm-dd", metavar="YYYY-MM-DD")
     parser.add_argument("-s", "--select", type=str, choices=['attribution', 'ao', 'rectificatif'], help="Selection de la nature de l'avis : 'attribution', 'rectificatif' ou 'ao' (Appel d'Offre)")
     parser.add_argument("-l", "--legende", action="store_true", help="Publie la légende dans le channel des avis de marché")
+    parser.add_argument("-m", "--motclef", action="store_true", help="Affiche tous les mots clefs")
 
     # Parse arguments
     args = parser.parse_args()
@@ -440,7 +478,19 @@ if __name__ == "__main__":
     specified_date = args.date
     select_option = args.select 
     legende = args.legende
-    
+    motclef = args.motclef    
+
+    if motclef: 
+        api_url = "https://www.boamp.fr/api/explore/v2.1/catalog/datasets/liste-mots-descripteurs-boamp%2F/records?order_by=mc_libelle&limit=100&timezone=UTC&include_links=false&include_app_metas=false"
+        all_results = fetch_all_results(api_url)
+
+        for result in all_results:
+            mc_code = result.get('mc_code', '')
+            mc_libelle = result.get('mc_libelle', '')
+            print(f"{mc_code}, {mc_libelle}")
+        exit()
+
+
     if debug_mode:
         stdlog("DEBUG MODE")
 
