@@ -67,7 +67,7 @@ python3 boamp.py -h
     (__)     (_)             '-'  '-'(__) 
             par Julien Mousqueton / Computacenter         
         
-usage: boamp.py [-h] [-D] [-n] [-d YYYY-MM-DD] [-s {attribution,ao,rectificatif}]
+usage: boamp.py [-h] [-D] [-n] [-d YYYY-MM-DD] [-s {attribution,ao,rectificatif}] [-l]
 
 Script to fetch and process BOAMP data
 
@@ -79,24 +79,11 @@ options:
                         Spécifie la date du scan au format yyyy-mm-dd
   -s {attribution,ao,rectificatif}, --select {attribution,ao,rectificatif}
                         Selection de la nature de l'avis : 'attribution', 'rectificatif' ou 'ao' (Appel d'Offre)
+  -l, --legende         Publie la légende dans le channel des avis de marché
 
   ```
 
-## Legende 
-
-```
-python3 boamp.py --legende
-
-    ,---.    .---.    .--.           ,---.   
-    | .-.\  / .-. )  / /\ \ |\    /| | .-.\  
-    | |-' \ | | |(_)/ /__\ \|(\  / | | |-' ) 
-    | |--. \| | | | |  __  |(_)\/  | | |--'  
-    | |`-' /\ `-' / | |  |)|| \  / | | |     
-    /( `--'  )---'  |_|  (_)| |\/| | /(      
-    (__)     (_)             '-'  '-'(__) 
-            par Julien Mousqueton / Computacenter         
-        
-Legende : 
+## Legende      
 
 💰     : marché supérieur à 1000000.00 €
 💰💰   : marché supérieur à 2000000.00 €
@@ -108,7 +95,7 @@ Legende :
 🟢     : Avis de marché
 🟠     : Modification d'un avis de marché
 🏆     : Avis d'attributiion
-```
+
 
 ## Exemple
 

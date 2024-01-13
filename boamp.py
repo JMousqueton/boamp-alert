@@ -12,7 +12,7 @@ import pymsteams # To Publish Card on teams
 from datetime import datetime, timedelta
 import logging 
 import argparse
-import re # For  removing HTML tag in debug mode 
+import re # For removing HTML tag in debug mode 
 
 # For checking python version
 import sys
@@ -45,6 +45,19 @@ def errlog(msg):
 def remove_html_tags(text):
     clean = re.compile('<.*?>')
     return re.sub(clean, '', text)
+
+def format_large_number(number_str):
+    try:
+        number = float(number_str)
+        if number >= 1000000:
+            formatted_number = f"{number / 1000000:.0f}M"
+        elif number >= 1000:
+            formatted_number = f"{number / 1000:.0f}k"
+        else:
+            formatted_number = f"{number:.2f}"
+        return formatted_number
+    except ValueError:
+        return "Invalid input"
 
 
 def fetch_boamp_data(date, select_option=None):
@@ -112,7 +125,7 @@ def determine_status(nature):
         case "ATTRIBUTION":
             status = "🏆"
         case _:
-            status = "Non disponible"
+            status = ""
     return status
 
 # Send message to Teams Channel regarding the nature of the message 
@@ -369,22 +382,30 @@ def parse_boamp_data(api_response, date):
     stdlog(str(i) + ' message(s) envoyé(s) dans msteams')
 
 
-def showlegend():
+def showlegend(msteams=False):
     ''' 
     affiche la legende 
     '''
-    print('Legende : ')
-    print('')
-    print('💰     : marché supérieur à ' +  str(montant1) + ' €')
-    print('💰💰   : marché supérieur à ' +  str(montant2) + ' €')
-    print('💰💰💰 : marché supérieur à ' +  str(montant3) + ' €')
-    print('⬇️      : marché entre 90k€ et ' + seuilmarches)
-    print('💿     : marché identifié comme un marché logiciel')
-    print('🧰     : marché identifié comme un marché de maintenance')
-    print('👥     : marché identidié comme un marché de prestation')
-    print('🟢      : Avis de marché')
-    print('🟠      : Modification d\'un avis de marché')
-    print('🏆     : Avis d\'attributiion')
+    message = '<table border="0"><tr><th>Logo</th><th>Description</th></tr>'
+    message += '<tr><td>💰</td><td>Marché supérieur à ' +  format_large_number(str(montant1)) + ' €</td></tr>'
+    message += '<tr><td>💰💰</td><td>Marché supérieur à ' +  format_large_number(str(montant2)) + ' €</td></tr>'
+    message += '<tr><td>💰💰💰</td><td>Marché supérieur à ' +  format_large_number(str(montant3)) + ' €</td></tr>'
+    message += '<tr><td>⬇️</td><td>marché entre 90k€ et ' + seuilmarches + '</td></tr>'
+    message += '<tr><td>💿</td><td>marché identifié comme un marché logiciel</td></tr>'
+    message += '<tr><td>🧰\</td><td>marché identifié comme un marché de maintenance</td></tr>'
+    message += '<tr><td>👥\</td><td>marché identidié comme un marché de prestation</td></tr>'
+    message += '<tr><td>🟢</td><td>Avis de marché</td></tr>'
+    message += '<tr><td>🟠</td><td>Modification d\'un avis de marché</td></tr>'
+    message += '<tr><td>🏆</td><td>Avis d\'attributiion</td></tr></table>'
+
+    if msteams == True:
+        title = 'Légende'
+        tomsteeams('LEGENDE',title,message)
+        stdlog('Publication de la légende')
+    else:
+        print('Légende :\n\n')
+        print(remove_html_tags(message.replace('\n\n','\n')))
+
 
 
 '''
@@ -412,7 +433,8 @@ if __name__ == "__main__":
     parser.add_argument("-n", "--now", action="store_true", help="Force la date du jour au lieu de J-1")
     parser.add_argument("-d", "--date", type=str, help="Spécifie la date du scan au format yyyy-mm-dd", metavar="YYYY-MM-DD")
     parser.add_argument("-s", "--select", type=str, choices=['attribution', 'ao', 'rectificatif'], help="Selection de la nature de l'avis : 'attribution', 'rectificatif' ou 'ao' (Appel d'Offre)")
-    parser.add_argument("-l", "--legende", action="store_true", help="Affiche la legende des titres")
+    parser.add_argument("-l", "--legende", action="store_true", help="Publie la légende dans le channel des avis de marché")
+
     # Parse arguments
     args = parser.parse_args()
 
@@ -439,9 +461,17 @@ if __name__ == "__main__":
 
     seuilmarches = os.getenv('SEUILMARCHES','')
 
+    legendemonthly= os.getenv('LEGENDE',False) 
+
     if legende:
-        showlegend()
+        showlegend(True)
         exit()
+    
+    current_date = datetime.now().date()
+    if not debug_mode and current_date.day == 1:
+        showlegend(True)
+
+
 
     ## Get Keywords 
     descripteurs_list = os.getenv('DESCRIPTEURS', '').split(',')
