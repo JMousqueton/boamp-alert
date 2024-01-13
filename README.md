@@ -1,5 +1,5 @@
 
-# BOAMP Alert
+# 🔔 BOAMP Alert
 
 Ce script Python est conçu pour récupérer les données des marchés publics du BOAMP (Bulletin officiel des annonces des marchés publics) via l'API, analyser les données et envoyer des notifications via Microsoft Teams. 
 Il est particulièrement utile pour surveiller les appels d'offres publics et les mises à jour associées.
