@@ -240,7 +240,9 @@ def parse_boamp_data(api_response, date):
                 deadline = date_object.strftime("%Y-%m-%d")
             except:
                 pass
-            ## Attaque des données JSON du champs donnees
+            ###
+            # Lecture  des données JSON du champs donnees
+            ###
             donnees_brut = record.get('donnees',{})
             donnees = json.loads(donnees_brut)
             if not titulaires:
@@ -289,6 +291,10 @@ def parse_boamp_data(api_response, date):
             except:
                  devise = ''
                  valeur = ''
+            try:
+                offresattendues = donnees['PROCEDURE']['ACCORD_CADRE']['NB_MAX_PARTICIPANTS']
+            except:
+                offresattendues = ''
             try:
                 duree = donnees.get('OBJET', {}).get('DUREE_DELAI', {}).get('DUREE_MOIS', '')
             except:
@@ -355,6 +361,8 @@ def parse_boamp_data(api_response, date):
                 except: 
                     pass
                     #Parsing error should be investigate (ie 2023-12-23)
+            if offresattendues:
+                message += '<strong>Offres maximales attendues : </strong>' + str(offresattendues) + '\n\n'
             if deadline:
                 message += '<strong>Deadline : </strong>' + deadline + ' ('+ str(delai)+ ' jours)\n\n' 
             if offresrecues:
@@ -387,7 +395,7 @@ def parse_boamp_data(api_response, date):
                 logoservices_list.append("🧰")
             if "logiciel" in services_list.lower() or "progiciel" in services_list.lower():
                 logoservices_list.append("💿")
-            if "prestations" in services_list.lower():
+            if "prestations" in services_list.lower() or "assistance" in services_list.lower():
                 logoservices_list.append("👥")
             if "matériel" in services_list.lower():
                 logoservices_list.append("💻")

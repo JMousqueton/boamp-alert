@@ -38,9 +38,14 @@ pip3 install requests pymsteams python-dotenv
 2) Ajoutez les variables d'environnement suivantes au fichier .env :
 
 ```
-DESCRIPTEURS=<mots-clés séparés par des virgules>
-WEBHOOK_MARCHE=<URL du Webhook Microsoft Teams pour les annonces de marché>
-WEBHOOK_ATTRIBUTION=<URL du Webhook Microsoft Teams pour les annonces d'attribution>
+WEBHOOK_MARCHE=
+WEBHOOK_ATTRIBUTION=
+DESCRIPTEURS=
+SEUILMARCHES="221 k€"
+MONTANT1=1000000
+MONTANT2=2000000
+MONTANT3=4000000
+LEGENDE=True
 ````
 
 ## Utilisation
@@ -108,7 +113,6 @@ options:
 🟠       Modification d'un avis de marché
 
 🏆      Avis d'attribution
-
 
 
 ## Exemple
