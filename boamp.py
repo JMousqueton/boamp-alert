@@ -421,6 +421,9 @@ def parse_boamp_data(api_response, date):
                 logoservices_list.append("🖨️")
             if "internet" in services_list.lower():
                 logoservices_list.append("🌍")
+            if "assistance" in services_list.lower():
+                logoservices_list.append("🆘")
+
             if "téléphonie" in services_list.lower() or "télécommunications" in services_list.lower():
                 logoservices_list.append('📞')
             if nature == "APPEL_OFFRE":
@@ -463,6 +466,7 @@ def showlegend(debug=False):
     message += '<tr><td>💿</td><td>Marché identifié comme un marché <strong>logiciel</strong></td></tr>'
     message += '<tr><td>🧰</td><td>Marché identifié comme un marché de <strong>maintenance</strong></td></tr>'
     message += '<tr><td>👥</td><td>Marché identifié comme un marché de <strong>prestation de service</strong></td></tr>'
+    message += '<tr><td>🆘</td><td>Marché identifié comme un marché de <strong>d\'assistance</strong></td></tr>'
     message += '<tr><td>💻</td><td>Marché identifié comme un marché de <strong>matériel</strong></td></tr>'
     message += '<tr><td>🖨️</td><td>Marché identifié comme un marché de <strong>matériel d\'impression</strong></td></tr>'
     message += '<tr><td>🟢</td><td>Avis de marché</td></tr>'

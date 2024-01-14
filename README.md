@@ -110,6 +110,8 @@ options:
 
 👥      Marché identifié comme un marché de prestation de service
 
+🆘       Marché identifié comme un marché de d'assistance
+
 💻      Marché identifié comme un marché de matériel
 
 🖨️       Marché identifié comme un marché de matériel d'impression
