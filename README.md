@@ -116,7 +116,7 @@ options:
 
 🏆      Avis d'attribution
 
-> * Valeur configurarable dans le fichier .env (cf [.env.sample](.env.sample))
+>  &#42; Valeur configurarable dans le fichier .env (cf [.env.sample](.env.sample))
 
 
 ## Exemple
