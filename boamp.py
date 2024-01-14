@@ -85,7 +85,7 @@ def gzip_and_delete_old_files(day_before_gzip, day_before_delete):
             file_date = datetime.strptime(file_date_str, file_date_format)
 
             # Gzip the file if it's older than the threshold date for gzip
-            if day_before_gzip > 0 and file_date < threshold_gzip_date:
+            if day_before_gzip > 0 and file_date < threshold_gzip_date and filename.endswith('.json'):
                 gzip_filename = f"{filename}.gz"
                 gzip_filepath = os.path.join(directory_path, gzip_filename)
 
