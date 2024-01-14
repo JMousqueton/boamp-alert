@@ -46,7 +46,11 @@ MONTANT1=1000000
 MONTANT2=2000000
 MONTANT3=4000000
 LEGENDE=True
+PUSH_USER=
+PUSH_API= 
 ````
+
+PUSH_* are optional, if you have a PUSHOVER.NET account and want to receive error notification
 
 ## Utilisation
 

@@ -3,7 +3,7 @@
 
 __author__ = "Julien Mousqueton"
 __email__ = "julien.mousqueton_AT_computacenter.com"
-__version__ = "1.3.0"
+__version__ = "1.3.1"
 
 # Import for necessary Python modules
 import requests
@@ -81,8 +81,8 @@ def toPushover(message):
                 "html": 1
                 }), { "Content-type": "application/x-www-form-urlencoded" })
         conn.getresponse()
-    else:
-        stdlog('Erreur d\'envoi de la notification PushOver')
+    #else:
+    #    stdlog('Erreur d\'envoi de la notification PushOver')
 
 
 def fetch_boamp_data(date, select_option=None):
