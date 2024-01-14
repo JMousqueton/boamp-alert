@@ -3,7 +3,7 @@
 
 __author__ = "Julien Mousqueton"
 __email__ = "julien.mousqueton_AT_computacenter.com"
-__version__ = "1.3.0β"
+__version__ = "1.3.0"
 
 # Import for necessary Python modules
 import requests
@@ -66,20 +66,18 @@ def format_large_number(number_str):
         return "Invalid input"
 
 ## Not used yet ... 
-def toPushover(title, message):
-    if USER_KEY and API_KEY:
+def toPushover(message):
+    if USER_KEY and API_KEY and message:
         stdlog('Envoi d\'une notification PushOver')
         #load_dotenv()
         #USER_KEY=os.getenv('PUSH_USER')
         #API_KEY= os.getenv('PUSH_API')
-        MESSAGE = "<strong>" + title +  "</strong></<BR>" 
-        MESSAGE += message
         conn = http.client.HTTPSConnection("api.pushover.net:443")
         conn.request("POST", "/1/messages.json",
         urllib.parse.urlencode({
                 "token": API_KEY,
                 "user": USER_KEY,
-                "message": MESSAGE,
+                "message": message,
                 "html": 1
                 }), { "Content-type": "application/x-www-form-urlencoded" })
         conn.getresponse()
@@ -126,13 +124,21 @@ def fetch_boamp_data(date, select_option=None):
         return response.json()
 
     except requests.exceptions.HTTPError as errh:
-        print(f"HTTP Error: {errh}")
+        errmsg = "HTTP Error: " + str(errh)
+        stdlog(errmsg)
+        toPushover(errmsg)
     except requests.exceptions.ConnectionError as errc:
-        print(f"Error Connecting: {errc}")
+        errmsg = "Error Connecting: " + str(errc)
+        stdlog(errmsg)
+        toPushover(errmsg)
     except requests.exceptions.Timeout as errt:
-        print(f"Timeout Error: {errt}")
+        errmsg = "Timeout Error: " + str(errt)
+        stdlog(errmsg)
+        toPushover(errmsg)
     except requests.exceptions.RequestException as err:
-        print(f"Other Error: {err}")
+        errmsg = "Other Error: " + str(err)
+        stdlog(errmsg)
+        toPushover(errmsg)
 
 def determine_status(nature):
     """
@@ -171,9 +177,8 @@ def tomsteeams(nature,title,message):
     except pymsteams.TeamsWebhookException as e:
         print(f"Erreur à l'envoie du message MSTeams : {e}")
 
-import requests
 
-def fetch_all_results(api_url):
+def fetch_all_keywords(api_url):
     limit = 100
     offset = 0
     all_results = []
@@ -233,6 +238,7 @@ def parse_boamp_data(api_response, date):
 
     if total_count > 99:
         stdlog("Plus de 100 résultats !!!")
+        toPushover("Il y a plus de 100 résultats")
     stdlog('Extraction des données ...')
     if 'results' in api_response and api_response['results']:
         for record in api_response['results']:
@@ -553,7 +559,7 @@ if __name__ == "__main__":
 
     if motclef: 
         api_url = "https://www.boamp.fr/api/explore/v2.1/catalog/datasets/liste-mots-descripteurs-boamp%2F/records?order_by=mc_libelle&limit=100&timezone=UTC&include_links=false&include_app_metas=false"
-        all_results = fetch_all_results(api_url)
+        all_results = fetch_all_keywords(api_url)
 
         for result in all_results:
             mc_code = result.get('mc_code', '')
@@ -596,11 +602,15 @@ if __name__ == "__main__":
     descripteurs_list = [word.strip() for word in descripteurs_list]
 
     if not descripteurs_list:
-        stdlog("Aucun code de descripteurs. Voir le fichier .env")
+        errmsg = "Aucun code de descripteurs. Voir le fichier .env"
+        stdlog(errmsg)
+        toPushover(errmsg)
         exit(1)
 
     if not webhook_marche or not webhook_attribution:
-        stdlog("Erreur: Au moins une des deux webhook URLs est manquante ou vide.")
+        errmsg("Erreur: Au moins une des deux webhook URLs est manquante ou vide.")
+        stdlog(errmsg)
+        toPushover(errmsg)
         exit(1)
 
     # Determine the date to process
