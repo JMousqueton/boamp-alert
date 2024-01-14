@@ -649,6 +649,12 @@ if __name__ == "__main__":
         showlegend(debug_mode)
         exit()
 
+    stdlog('🧹 Nettoyage') 
+    if debug_mode:
+        stdlog('🧹 ' + str(day_before_gzip) + ' jours avant de compresser les fichiers')
+        stdlog('🧹 ' + str(day_before_delete) + ' jours avant d\'effacer les fichiers')
+    gzip_and_delete_old_files(day_before_gzip, day_before_delete)
+
     current_date = datetime.now().date()
     if not debug_mode and current_date.day == 1:
         showlegend(True)
@@ -689,9 +695,4 @@ if __name__ == "__main__":
     else:
         errlog('Pas de donnée à analyser')
     
-    stdlog('🧹 Nettoyage') 
-    if debug_mode:
-        stdlog('🧹 ' + str(day_before_gzip) + ' jours avant de compresser les fichiers')
-        stdlog('🧹 ' + str(day_before_delete) + ' jours avant d\'effacer les fichiers')
-    gzip_and_delete_old_files(day_before_gzip, day_before_delete)
     stdlog('Fini !')
