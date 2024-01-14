@@ -608,7 +608,7 @@ if __name__ == "__main__":
         exit(1)
 
     if not webhook_marche or not webhook_attribution:
-        errmsg("Erreur: Au moins une des deux webhook URLs est manquante ou vide.")
+        errmsg = "Erreur: Au moins une des deux webhook URLs est manquante ou vide."
         stdlog(errmsg)
         toPushover(errmsg)
         exit(1)
