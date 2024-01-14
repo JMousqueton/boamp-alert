@@ -98,7 +98,11 @@ options:
 
 💰💰💰  Marché supérieur à 5M €*
 
-⬇️       Marché entre 90k€ et 221 k€*
+❌       Marché entre 90k€ et 221 k€
+
+❌      Marché inférieur à 90k€ (MAPA)
+
+❓      Marché d'un montant inconnu ou compris entre 221k€ et 1M €*
 
 💿      Marché identifié comme un marché logiciel
 

@@ -3,7 +3,7 @@
 
 __author__ = "Julien Mousqueton"
 __email__ = "julien.mousqueton_AT_computacenter.com"
-__version__ = "1.1.2"
+__version__ = "1.2.0"
 
 # Import for necessary Python modules
 import requests
@@ -391,19 +391,23 @@ def parse_boamp_data(api_response, date):
             message += '<strong>Avis : </strong>: ' + urlavis + '\n\n'
             
             # Add a title to the message
-            logomontant = ''
-            if montanttotal and nature == "APPEL_OFFRE":
+            logomontant = '❓'
+            if montanttotal and nature == "APPEL_OFFRE": 
                 if float(montanttotal) > float(montant3):
-                    logomontant += '💰💰💰'
+                    logomontant = '💰💰💰'
                 elif float(montanttotal) > float(montant2):
-                    logomontant += '💰💰'
+                    logomontant = '💰💰'
                 elif float(montanttotal) > float(montant1):
-                    logomontant += '💰'
+                    logomontant = '💰'
+                elif "entre" in typemarche:
+                    logomontant= '❌'
                 # Disable since no flag in Windows emoji :(  
                 #elif typemarche == "Marchés européens":
                 #    logomontant += '🇪🇺'
-            elif "Marchés entre" in typemarche:
-                logomontant += '⬇️'
+            elif "entre" in typemarche:
+                    logomontant= '❌'
+            elif "MAPA" in typemarche:
+                logomontant = "⬇️"
             logoservices_list = []
             if "maintenance" in services_list.lower():
                 logoservices_list.append("🧰")
@@ -415,14 +419,22 @@ def parse_boamp_data(api_response, date):
                 logoservices_list.append("💻")
             if "imprimerie" in services_list.lower():
                 logoservices_list.append("🖨️")
-            if logomontant and logoservices_list:
+            if "internet" in services_list.lower():
+                logoservices_list.append("🌍")
+            if "téléphonie" in services_list.lower() or "télécommunications" in services_list.lower():
+                logoservices_list.append('📞')
+            if nature == "APPEL_OFFRE":
+                if logomontant and logoservices_list:
+                    logoservice = " ".join(logoservices_list)
+                    logostring = '  (' + logomontant + ' | ' + logoservice +') '
+                elif logomontant and not logoservices_list:
+                    logostring = '  (' + logomontant  +') '
+                elif not logomontant and logoservices_list:
+                    logoservice = " ".join(logoservices_list)
+                    logostring = '  (' + logoservice + ') '
+            else:
                 logoservice = " ".join(logoservices_list)
-                logostring = '  (' + logomontant + ' | ' + logoservice +') '
-            elif logomontant and not logoservices_list:
-                logostring = '  (' + logomontant  +') '
-            elif not logomontant and logoservices_list:
-                logoservice = " ".join(logoservices_list)
-                logostring = '  (' + logoservice + ') '
+                logostring = ' (' + logoservice + ') '
             title = '['+ID+'] ' + status + logostring + objet
             # Send MsTeams Card
             if not debug_mode:
@@ -445,7 +457,9 @@ def showlegend(debug=False):
     message += '<tr><td>💰</td><td>Marché supérieur à ' +  format_large_number(str(montant1)) + ' €</td></tr>'
     message += '<tr><td>💰💰</td><td>Marché supérieur à ' +  format_large_number(str(montant2)) + ' €</td></tr>'
     message += '<tr><td>💰💰💰</td><td>Marché supérieur à ' +  format_large_number(str(montant3)) + ' €</td></tr>'
-    message += '<tr><td>⬇️</td><td>Marché entre 90k€ et ' + seuilmarches + '</td></tr>'
+    message += '<tr><td>❌</td><td>Marché entre 90k€ et ' + seuilmarches + '</td></tr>'
+    message += '<tr><td>❌</td><td>Marché inférieur à 90k€ (MAPA)</td></tr>'
+    message += '<tr><td>❓</td><td>Marché d\'un montant inconnu ou compris entre ' + seuilmarches +  ' et ' + format_large_number(str(montant1)) + ' €</td></tr>'
     message += '<tr><td>💿</td><td>Marché identifié comme un marché <strong>logiciel</strong></td></tr>'
     message += '<tr><td>🧰</td><td>Marché identifié comme un marché de <strong>maintenance</strong></td></tr>'
     message += '<tr><td>👥</td><td>Marché identifié comme un marché de <strong>prestation de service</strong></td></tr>'
