@@ -18,7 +18,7 @@ Variables d'environnement pour une configuration flexible.
 
 
 - Python 3.10+ 
-- Bibliothèques externes : requests, pymsteams, json, logging, datetime, os, dotenv
+- Bibliothèques externes : requests, json, pymsteams, datetime, logging, argparse, re, sys, os, load_dotenv
 
 
 ## Installation
@@ -27,7 +27,7 @@ Variables d'environnement pour une configuration flexible.
 2) Installez les paquets Python requis :
 
 ```
-pip3 install requests pymsteams python-dotenv
+pip3 install -r requirements.txt
 ```
 
 3) Clonez ou téléchargez ce script sur votre machine locale.
@@ -92,27 +92,31 @@ options:
 
 ## Legende      
 
-💰      Marché supérieur à 1M €
+💰      Marché supérieur à 1M €*
 
-💰💰    Marché supérieur à 2M €
+💰💰    Marché supérieur à 2M €*
 
-💰💰💰  Marché supérieur à 5M €
+💰💰💰  Marché supérieur à 5M €*
 
-⬇️       Marché entre 90k€ et 221 k€
+⬇️       Marché entre 90k€ et 221 k€*
 
-💿      Marché identifié comme un marché **logiciel**
+💿      Marché identifié comme un marché logiciel
 
-🧰      Marché identifié comme un marché de **maintenance**
+🧰      Marché identifié comme un marché de maintenance
 
-👥      Marché identidié comme un marché de **prestation de service**
+👥      Marché identifié comme un marché de prestation de service
 
-💻      Marché identidié comme un marché de **matériel**
+💻      Marché identifié comme un marché de matériel
+
+🖨️       Marché identifié comme un marché de matériel d'impression
 
 🟢       Avis de marché
 
 🟠       Modification d'un avis de marché
 
 🏆      Avis d'attribution
+
+> * Valeur configurarable dans le fichier .env (cf [.env.sample](.env.sample))
 
 
 ## Exemple

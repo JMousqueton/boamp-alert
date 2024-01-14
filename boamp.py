@@ -278,8 +278,12 @@ def parse_boamp_data(api_response, date):
                     devisetotal = donnees['ATTRIBUTION']['DECISION']['RENSEIGNEMENT']['MONTANT']['@DEVISE']
                     montanttotal = donnees['ATTRIBUTION']['DECISION']['RENSEIGNEMENT']['MONTANT']['#text']
                 except:
-                    devisetotal = ''
-                    montanttotal = ''
+                    try:
+                        devisetotal = donnees['OBJET']['LOTS']['LOT']['VALEUR']['@DEVISE']
+                        montanttotal = donnees['OBJET']['LOTS']['LOT']['VALEUR']['#text']
+                    except:
+                        devisetotal = ''
+                        montanttotal = ''
             
             try:
                 ref = donnees['CONDITION_ADMINISTRATIVE']['REFERENCE_MARCHE']
@@ -311,7 +315,7 @@ def parse_boamp_data(api_response, date):
                     lots = False 
             except KeyError:
                     lots = False
-            if lots:
+            if lots:    
                 lots_data = donnees['OBJET'].get('LOTS', {}).get('LOT', [])
                 nblots = len(lots_data)        
             try:
@@ -348,6 +352,7 @@ def parse_boamp_data(api_response, date):
             if lots:
                 message += '<strong>Marché alloti : </strong>✅\n\n'
                 try: 
+                    counter = 1
                     for lot in lots_data:
                         intitule = lot.get('INTITULE','')
                         if not intitule:
@@ -357,7 +362,11 @@ def parse_boamp_data(api_response, date):
                         deviselot = lot.get('VALEUR',{}).get('@DEVISE','')
                         montantlot = lot.get('VALEUR',{}).get('#text','')
                         if not num:
-                            message += '\t' + intitule + '\n\n' 
+                            if "lot" not in intitule.lower():
+                                message += '\t Lot ' + str(counter) + ' : ' + intitule + '\n\n'
+                                counter += 1 
+                            else:    
+                                message += '\t' + intitule + '\n\n' 
                         else:   
                             message += '\tLot '+ num + " : " +  intitule + '\n\n'
                         if montantlot:
@@ -404,6 +413,8 @@ def parse_boamp_data(api_response, date):
                 logoservices_list.append("👥")
             if "matériel" in services_list.lower():
                 logoservices_list.append("💻")
+            if "imprimerie" in services_list.lower():
+                logoservices_list.append("🖨️")
             if logomontant and logoservices_list:
                 logoservice = " ".join(logoservices_list)
                 logostring = '  (' + logomontant + ' | ' + logoservice +') '
@@ -439,6 +450,7 @@ def showlegend(debug=False):
     message += '<tr><td>🧰</td><td>Marché identifié comme un marché de <strong>maintenance</strong></td></tr>'
     message += '<tr><td>👥</td><td>Marché identifié comme un marché de <strong>prestation de service</strong></td></tr>'
     message += '<tr><td>💻</td><td>Marché identifié comme un marché de <strong>matériel</strong></td></tr>'
+    message += '<tr><td>🖨️</td><td>Marché identifié comme un marché de <strong>matériel d\'impression</strong></td></tr>'
     message += '<tr><td>🟢</td><td>Avis de marché</td></tr>'
     message += '<tr><td>🟠</td><td>Modification d\'un avis de marché</td></tr>'
     message += '<tr><td>🏆</td><td>Avis d\'attribution</td></tr></table>'
@@ -532,8 +544,8 @@ if __name__ == "__main__":
     ## Get Keywords 
     descripteurs_list = os.getenv('DESCRIPTEURS', '').split(',')
     descripteurs_list = [word.strip() for word in descripteurs_list]
-    if debug_mode:
-        stdlog('DESCRIPTEURS : ' + os.getenv('DESCRIPTEURS', ''))
+    #if debug_mode:
+    #    stdlog('DESCRIPTEURS : ' + os.getenv('DESCRIPTEURS', ''))
 
     if not webhook_marche or not webhook_attribution:
         errlog("Erreur: Au moins une des deux webhook URLs est manquante ou vide.")
