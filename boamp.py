@@ -386,9 +386,9 @@ def parse_boamp_data(api_response, date):
             if duree:
                 message +='<strong>Durée du marché (en mois) : </strong>' + duree + '\n\n'
             if annonce_lie:
-                annonce_lie_list= ', '.join(annonce_lie)
+                annonce_lie_list = ', '.join(['<a href="https://www.boamp.fr/pages/avis/?q=idweb:' + item + '">' + item + '</a>' for item in annonce_lie])
                 message += '<strong>Annonce(s) liée(s) : </strong>' + annonce_lie_list + '\n\n'
-            message += '<strong>Avis : </strong>: ' + urlavis + '\n\n'
+            message += '<strong>Avis : </strong> ' + urlavis + '\n\n'
             
             # Add a title to the message
             logomontant = '❓'
