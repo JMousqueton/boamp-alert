@@ -274,8 +274,13 @@ def parse_boamp_data(api_response, date):
                 devisetotal = donnees['OBJET']['CARACTERISTIQUES']['VALEUR_TOTALE']['@DEVISE']
                 montanttotal = donnees['OBJET']['CARACTERISTIQUES']['VALEUR_TOTALE']['#text']
             except:
-                devisetotal = ''
-                montanttotal = ''
+                try:
+                    devisetotal = donnees['ATTRIBUTION']['DECISION']['RENSEIGNEMENT']['MONTANT']['@DEVISE']
+                    montanttotal = donnees['ATTRIBUTION']['DECISION']['RENSEIGNEMENT']['MONTANT']['#text']
+                except:
+                    devisetotal = ''
+                    montanttotal = ''
+            
             try:
                 ref = donnees['CONDITION_ADMINISTRATIVE']['REFERENCE_MARCHE']
             except:
