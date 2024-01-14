@@ -3,7 +3,7 @@
 
 __author__ = "Julien Mousqueton"
 __email__ = "julien.mousqueton_AT_computacenter.com"
-__version__ = "1.2.0"
+__version__ = "1.3.0β"
 
 # Import for necessary Python modules
 import requests
@@ -16,6 +16,9 @@ import re # For removing HTML tag in debug mode
 
 # For checking python version
 import sys
+
+# For pushover notification
+import http.client, urllib
 
 #For reading .env 
 import os 
@@ -47,6 +50,9 @@ def remove_html_tags(text):
     return re.sub(clean, '', text)
 
 def format_large_number(number_str):
+    """
+    Converti number_str au format 1K ou 1M ... 
+    """
     try:
         number = float(number_str)
         if number >= 1000000:
@@ -58,6 +64,27 @@ def format_large_number(number_str):
         return formatted_number
     except ValueError:
         return "Invalid input"
+
+## Not used yet ... 
+def toPushover(title, message):
+    if USER_KEY and API_KEY:
+        stdlog('Envoi d\'une notification PushOver')
+        #load_dotenv()
+        #USER_KEY=os.getenv('PUSH_USER')
+        #API_KEY= os.getenv('PUSH_API')
+        MESSAGE = "<strong>" + title +  "</strong></<BR>" 
+        MESSAGE += message
+        conn = http.client.HTTPSConnection("api.pushover.net:443")
+        conn.request("POST", "/1/messages.json",
+        urllib.parse.urlencode({
+                "token": API_KEY,
+                "user": USER_KEY,
+                "message": MESSAGE,
+                "html": 1
+                }), { "Content-type": "application/x-www-form-urlencoded" })
+        conn.getresponse()
+    else:
+        stdlog('Erreur d\'envoi de la notification PushOver')
 
 
 def fetch_boamp_data(date, select_option=None):
@@ -442,6 +469,8 @@ def parse_boamp_data(api_response, date):
             # Send MsTeams Card
             if not debug_mode:
                 tomsteeams(nature,title,message)
+                #if nature == "APPEL_OFFRE" and  montanttotal and (float(montanttotal) > float(montant1) or typemarche == "Marchés européens"):
+                #    toPushover(title,message)
                 i+=1 
             else:
                 print(title + '\n' + remove_html_tags(message.replace('\n\n','\n')))
@@ -551,6 +580,9 @@ if __name__ == "__main__":
 
     legendemonthly= os.getenv('LEGENDE',False) 
 
+    USER_KEY=os.getenv('PUSH_USER')
+    API_KEY= os.getenv('PUSH_API')
+    
     if legende: 
         showlegend(debug_mode)
         exit()
@@ -562,11 +594,13 @@ if __name__ == "__main__":
     ## Get Keywords 
     descripteurs_list = os.getenv('DESCRIPTEURS', '').split(',')
     descripteurs_list = [word.strip() for word in descripteurs_list]
-    #if debug_mode:
-    #    stdlog('DESCRIPTEURS : ' + os.getenv('DESCRIPTEURS', ''))
+
+    if not descripteurs_list:
+        stdlog("Aucun code de descripteurs. Voir le fichier .env")
+        exit(1)
 
     if not webhook_marche or not webhook_attribution:
-        errlog("Erreur: Au moins une des deux webhook URLs est manquante ou vide.")
+        stdlog("Erreur: Au moins une des deux webhook URLs est manquante ou vide.")
         exit(1)
 
     # Determine the date to process
