@@ -9,10 +9,14 @@ __version__ = "1.3.1"
 import requests
 import json 
 import pymsteams # To Publish Card on teams 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta 
 import logging 
 import argparse
 import re # For removing HTML tag in debug mode 
+
+
+# Housekeeping 
+import gzip
 
 # For checking python version
 import sys
@@ -48,6 +52,55 @@ def errlog(msg):
 def remove_html_tags(text):
     clean = re.compile('<.*?>')
     return re.sub(clean, '', text)
+
+def gzip_and_delete_old_files(day_before_gzip, day_before_delete):
+    
+    directory_path = "./data"
+    # Get the current date
+    current_date = datetime.now()
+
+    # Calculate the threshold dates
+    threshold_gzip_date = current_date - timedelta(days=day_before_gzip)
+    stdlog('Date avant compression : ' + str(threshold_gzip_date))
+    threshold_delete_date = current_date - timedelta(days=day_before_delete)
+    stdlog('Date avant effacement : ' + str(threshold_delete_date))
+    pattern = re.compile(r'(\d{4}-\d{2}-\d{2})')
+    file_date_format = '%Y-%m-%d'
+    # Iterate through files in the directory
+    for filename in os.listdir(directory_path):
+        file_path = os.path.join(directory_path, filename)
+
+        # Check if it's a file
+        if os.path.isfile(file_path):
+            # Extract date from the filename
+            matches = pattern.findall(filename)
+
+            if matches:
+                file_date_str = matches[0]
+            else:
+                # stdlog("Ignored file with unexpected date format: " + filename)
+                continue
+            
+            # Convert date string to datetime
+            file_date = datetime.strptime(file_date_str, file_date_format)
+
+            # Gzip the file if it's older than the threshold date for gzip
+            if day_before_gzip > 0 and file_date < threshold_gzip_date:
+                gzip_filename = f"{filename}.gz"
+                gzip_filepath = os.path.join(directory_path, gzip_filename)
+
+                with open(file_path, 'rb') as f_in, gzip.open(gzip_filepath, 'wb') as f_out:
+                    f_out.writelines(f_in)
+
+                # Remove the original .json file
+                os.remove(file_path)
+                stdlog("Compression de " + filename)
+
+            # Delete the file if it's a gzip or json file and older than the threshold date for deletion
+            elif day_before_delete > 0 and (filename.endswith('.gz') or filename.endswith('.json')) and file_date < threshold_delete_date:
+                os.remove(file_path)
+                stdlog ("Effacement de : " + filename)
+
 
 def format_large_number(number_str):
     """
@@ -589,6 +642,9 @@ if __name__ == "__main__":
     USER_KEY=os.getenv('PUSH_USER')
     API_KEY= os.getenv('PUSH_API')
     
+    day_before_gzip = int(os.getenv("JOURS_AVANT_GZIP", 0))
+    day_before_delete = int(os.getenv("JOURS_AVANT_EFFACEMENT", 0))  
+
     if legende: 
         showlegend(debug_mode)
         exit()
@@ -632,5 +688,10 @@ if __name__ == "__main__":
         parse_boamp_data(data, date_to_process)
     else:
         errlog('Pas de donnée à analyser')
-
+    
+    stdlog('🧹 Nettoyage') 
+    if debug_mode:
+        stdlog('🧹 ' + str(day_before_gzip) + ' jours avant de compresser les fichiers')
+        stdlog('🧹 ' + str(day_before_delete) + ' jours avant d\'effacer les fichiers')
+    gzip_and_delete_old_files(day_before_gzip, day_before_delete)
     stdlog('Fini !')

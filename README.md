@@ -38,14 +38,26 @@ pip3 install -r requirements.txt
 2) Ajoutez les variables d'environnement suivantes au fichier .env :
 
 ```
+# Webhook pour les notifications msteams
 WEBHOOK_MARCHE=
 WEBHOOK_ATTRIBUTION=
+# Mots clefs (cf [.env.sample](.env.sample))
 DESCRIPTEURS=
+# information visuelle uniquement (valeur 2024-2025)
 SEUILMARCHES="221 k€"
+# Seuil pour afficher les icones 
 MONTANT1=1000000
 MONTANT2=2000000
 MONTANT3=4000000
+# Envoie de la legende tous les 1ers jour du mois
 LEGENDE=True
+# Nettoyage du répertoire data
+JOURS_AVANT_GZIP=7
+JOURS_AVANT_EFFACEMENT=30
+```
+
+Optionnel pour envoyer des notifications pushover.net en cas d'erreur 
+```
 PUSH_USER=
 PUSH_API= 
 ````
