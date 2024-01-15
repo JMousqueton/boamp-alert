@@ -14,7 +14,6 @@ import logging
 import argparse
 import re # For removing HTML tag in debug mode 
 
-
 # Housekeeping 
 import gzip
 
