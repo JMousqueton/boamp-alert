@@ -53,17 +53,22 @@ def remove_html_tags(text):
     clean = re.compile('<.*?>')
     return re.sub(clean, '', text)
 
-def gzip_and_delete_old_files(day_before_gzip, day_before_delete):
-    
+def housekeeping(day_before_gzip, day_before_delete):
+    """
+    Nettoye le répertoire directory_path
+    input : 
+        day_before_gzip 
+        day_before_delete 
+    """
     directory_path = "./data"
     # Get the current date
     current_date = datetime.now()
 
     # Calculate the threshold dates
     threshold_gzip_date = current_date - timedelta(days=day_before_gzip)
-    stdlog('Date avant compression : ' + str(threshold_gzip_date))
+    dbglog('Date avant compression : ' + str(threshold_gzip_date))
     threshold_delete_date = current_date - timedelta(days=day_before_delete)
-    stdlog('Date avant effacement : ' + str(threshold_delete_date))
+    dbglog('Date avant effacement : ' + str(threshold_delete_date))
     pattern = re.compile(r'(\d{4}-\d{2}-\d{2})')
     file_date_format = '%Y-%m-%d'
     # Iterate through files in the directory
@@ -118,8 +123,13 @@ def format_large_number(number_str):
     except ValueError:
         return "Invalid input"
 
-## Not used yet ... 
+
 def toPushover(message):
+    """
+    Envoi une notification vers PushOver.net 
+    input :
+        message : string  
+    """
     if USER_KEY and API_KEY and message:
         stdlog('Envoi d\'une notification PushOver')
         #load_dotenv()
@@ -232,6 +242,13 @@ def tomsteeams(nature,title,message):
 
 
 def fetch_all_keywords(api_url):
+    """
+    recupère tous les mots clefs dans la base du BOAMP 
+    input : 
+        api_url 
+    output : 
+        liste des mots clefs 
+    """
     limit = 100
     offset = 0
     all_results = []
@@ -260,9 +277,8 @@ def fetch_all_keywords(api_url):
             offset += limit
 
         else:
-            print(f"Failed to retrieve data. Status code: {response.status_code}")
+            stdlog("Erreur de récupuration des mots clef. Status code: "+ str(response.status_code))
             break
-
     return all_results
 
 def parse_boamp_data(api_response, date):
@@ -308,7 +324,14 @@ def parse_boamp_data(api_response, date):
             services_list= services_clean.replace('Informatique (','').replace(')','')
             pubdate =  record.get('dateparution', 'Non disponible')
             typemarche = record.get('famille_libelle', 'Non disponible')
-            devise = ''
+        
+            ###
+            # Lecture  des données JSON du champs donnees
+            ###
+            donnees_brut = record.get('donnees',{})
+            donnees = json.loads(donnees_brut)
+            
+            ## Titulaires 
             try:
                 titulaires_list = record.get('titulaire',[])
                 # Check if the list has only one entry or multiple entries
@@ -320,17 +343,6 @@ def parse_boamp_data(api_response, date):
                     titulaires = ', '.join(titulaires_list)
             except:
                 titulaires = ''
-            deadline = record.get('datelimitereponse', 'Non disponible')
-            try:
-                date_object = datetime.fromisoformat(deadline)
-                deadline = date_object.strftime("%Y-%m-%d")
-            except:
-                pass
-            ###
-            # Lecture  des données JSON du champs donnees
-            ###
-            donnees_brut = record.get('donnees',{})
-            donnees = json.loads(donnees_brut)
             if not titulaires:
                 try:
                     titulaires_list= donnees['ATTRIBUTION']['DECISION']['TITULAIRE']
@@ -345,6 +357,15 @@ def parse_boamp_data(api_response, date):
                         titulaires = titulaires_list['DENOMINATION']
                 except:
                     titulaires = ''
+            
+            
+             ## deadline 
+            deadline = record.get('datelimitereponse', 'Non disponible')
+            try:
+                date_object = datetime.fromisoformat(deadline)
+                deadline = date_object.strftime("%Y-%m-%d")
+            except:
+                pass
             if not deadline:
                 try:
                     deadline = donnees['CONDITION_DELAI']['RECEPT_OFFRES']
@@ -356,6 +377,8 @@ def parse_boamp_data(api_response, date):
                 target_date = datetime.strptime(deadline, "%Y-%m-%d")
                 current_date = datetime.now()
                 delai = (target_date - current_date).days
+            
+            ## Montant 
             try:
                 devisetotal = donnees['OBJET']['CARACTERISTIQUES']['VALEUR_TOTALE']['@DEVISE']
                 montanttotal = donnees['OBJET']['CARACTERISTIQUES']['VALEUR_TOTALE']['#text']
@@ -370,7 +393,14 @@ def parse_boamp_data(api_response, date):
                     except:
                         devisetotal = ''
                         montanttotal = ''
+            try:
+                devise = donnees['OBJET']['CARACTERISTIQUES']['VALEUR']['@DEVISE']
+                valeur = donnees['OBJET']['CARACTERISTIQUES']['VALEUR']['#text']
+            except:
+                 devise = ''
+                 valeur = ''
             
+            ## Reférence 
             try:
                 ref = donnees['CONDITION_ADMINISTRATIVE']['REFERENCE_MARCHE']
             except:
@@ -380,20 +410,19 @@ def parse_boamp_data(api_response, date):
                     ref = donnees['OBJET']['REF_MARCHE']
                 except:
                     ref = ''
-            try:
-                devise = donnees['OBJET']['CARACTERISTIQUES']['VALEUR']['@DEVISE']
-                valeur = donnees['OBJET']['CARACTERISTIQUES']['VALEUR']['#text']
-            except:
-                 devise = ''
-                 valeur = ''
+            ## Max participants 
             try:
                 offresattendues = donnees['PROCEDURE']['ACCORD_CADRE']['NB_MAX_PARTICIPANTS']
             except:
                 offresattendues = ''
+            
+            ## Durée 
             try:
                 duree = donnees.get('OBJET', {}).get('DUREE_DELAI', {}).get('DUREE_MOIS', '')
             except:
                 duree = ''
+            
+            ## Lots 
             try:
                 if 'DIV_EN_LOTS' in donnees['OBJET'] and 'OUI' in donnees['OBJET']['DIV_EN_LOTS']:
                     lots = True 
@@ -410,20 +439,22 @@ def parse_boamp_data(api_response, date):
                 try: 
                     if nblots:
                        offresrecues = [f"Lot {index + 1} : {item['RENSEIGNEMENT']['NB_OFFRE_RECU']}" for index, item in enumerate(donnees.get("ATTRIBUTION", {}).get("DECISION", []))]
-                       #[item["RENSEIGNEMENT"]["NB_OFFRE_RECU"] for item in donnees.get("ATTRIBUTION", {}).get("DECISION", [])]
                        offresrecues = ", ".join(offresrecues)
                 except:
                     offresrecues = ''    
+            
+            ## Annonces liées 
             try: 
                 annonce_lie = record.get('annonce_lie', [])
             except: 
                 annonce_lie = ''
             urlavis = record.get('url_avis', 'Not available')
             
-            message=''
+
             # Create the message for msteams card 
+            message=''
             if pubdate:
-                message='<strong>' + pubdate + '</strong>\n\n'
+                message+='<strong>' + pubdate + '</strong>\n\n'
             message += '<strong>Acheteur : </strong>' + acheteur + '\n\n'
             if ref:
                 message += '<strong>Référence marché : </strong>' + ref + '\n\n'
@@ -460,7 +491,6 @@ def parse_boamp_data(api_response, date):
                         message += '\t\t'+info+'\n\n'
                 except: 
                     pass
-                    #Parsing error should be investigate (ie 2023-12-23)
             if offresattendues:
                 message += '<strong>Offres maximales attendues : </strong>' + str(offresattendues) + '\n\n'
             if deadline:
@@ -476,7 +506,7 @@ def parse_boamp_data(api_response, date):
                 message += '<strong>Annonce(s) liée(s) : </strong>' + annonce_lie_list + '\n\n'
             message += '<strong>Avis : </strong> ' + urlavis + '\n\n'
             
-            # Add a title to the message
+            # Ajout de l'icone en fonction du montant du marché 
             logomontant = '❓'
             if montanttotal and nature == "APPEL_OFFRE": 
                 if float(montanttotal) > float(montant3):
@@ -494,6 +524,8 @@ def parse_boamp_data(api_response, date):
                     logomontant= '❌'
             elif "MAPA" in typemarche:
                 logomontant = "⬇️"
+            
+            # Ajout du logo en fonction des services du marché 
             logoservices_list = []
             if "maintenance" in services_list.lower():
                 logoservices_list.append("🧰")
@@ -509,9 +541,9 @@ def parse_boamp_data(api_response, date):
                 logoservices_list.append("🌍")
             if "assistance" in services_list.lower():
                 logoservices_list.append("🆘")
-
             if "téléphonie" in services_list.lower() or "télécommunications" in services_list.lower():
                 logoservices_list.append('📞')
+            ## Affiche le logo du montant uniquement pour les avis de marchés / modification 
             if nature == "APPEL_OFFRE":
                 if logomontant and logoservices_list:
                     logoservice = " ".join(logoservices_list)
@@ -524,18 +556,18 @@ def parse_boamp_data(api_response, date):
             else:
                 logoservice = " ".join(logoservices_list)
                 logostring = ' (' + logoservice + ') '
+            ## Creation du titre 
             title = '['+ID+'] ' + status + logostring + objet
-            # Send MsTeams Card
+            
+            # Envoie dans msteams
             if not debug_mode:
                 tomsteeams(nature,title,message)
-                #if nature == "APPEL_OFFRE" and  montanttotal and (float(montanttotal) > float(montant1) or typemarche == "Marchés européens"):
-                #    toPushover(title,message)
                 i+=1 
             else:
                 print(title + '\n' + remove_html_tags(message.replace('\n\n','\n')))
                 print('-----------------------------------------------')
     else:
-        errlog("No results found")
+        errlog("Pas de résultat trouvé")
 
     stdlog(str(i) + ' message(s) envoyé(s) dans msteams')
 
@@ -565,7 +597,10 @@ def showlegend(debug=False):
 
     if not debug:
         title = 'Légende'
-        tomsteeams('LEGENDE',title,message)
+        # envoi de la légende dans le channel "Attribution"
+        tomsteeams('ATTRIBUTION',title,message)
+        # envoi de la légende dans le channel "Avis de marché"
+        tomsteeams('AVIS',title,message)
         stdlog('Publication de la légende')
     else:
         print('Légende :\n')
@@ -602,7 +637,7 @@ if __name__ == "__main__":
     # Parse arguments
     args = parser.parse_args()
 
-    # Main script execution
+    # Get arguments
     debug_mode=args.debug
     today_mode=args.now
     specified_date = args.date
@@ -610,6 +645,7 @@ if __name__ == "__main__":
     legende = args.legende
     motclef = args.motclef    
 
+    ### Si option -m ou --motclef 
     if motclef: 
         api_url = "https://www.boamp.fr/api/explore/v2.1/catalog/datasets/liste-mots-descripteurs-boamp%2F/records?order_by=mc_libelle&limit=100&timezone=UTC&include_links=false&include_app_metas=false"
         all_results = fetch_all_keywords(api_url)
@@ -620,7 +656,7 @@ if __name__ == "__main__":
             print(f"{mc_code}, {mc_libelle}")
         exit()
 
-
+    ### Si mode debug
     if debug_mode:
         stdlog("DEBUG MODE")
 
@@ -645,20 +681,24 @@ if __name__ == "__main__":
     day_before_gzip = int(os.getenv("JOURS_AVANT_GZIP", 0))
     day_before_delete = int(os.getenv("JOURS_AVANT_EFFACEMENT", 0))  
 
+    ### Si option -l ou --legend 
     if legende: 
         showlegend(debug_mode)
         exit()
+    
+    ### si LEGENDE=True dans .env et que nous sommes le 1er jour du mois  
+    current_date = datetime.now().date()
+    if legendemonthly and current_date.day == 1:
+        showlegend(True)
 
+    # Housekeeping 
     stdlog('🧹 Nettoyage') 
     if debug_mode:
         stdlog('🧹 ' + str(day_before_gzip) + ' jours avant de compresser les fichiers')
         stdlog('🧹 ' + str(day_before_delete) + ' jours avant d\'effacer les fichiers')
-    gzip_and_delete_old_files(day_before_gzip, day_before_delete)
+    housekeeping(day_before_gzip, day_before_delete)
 
-    current_date = datetime.now().date()
-    if not debug_mode and current_date.day == 1:
-        showlegend(True)
-
+    
     ## Get Keywords 
     descripteurs_list = os.getenv('DESCRIPTEURS', '').split(',')
     descripteurs_list = [word.strip() for word in descripteurs_list]
@@ -678,10 +718,10 @@ if __name__ == "__main__":
     # Determine the date to process
     if today_mode:
         date_to_process = datetime.now().strftime("%Y-%m-%d")
-        stdlog("(!) TODAY MODE")
+        stdlog("(!) Date forcée à aujourd'hui : " + date_to_process)
     elif specified_date:
         date_to_process = specified_date
-        stdlog("(!) FORCED DATE MODE")
+        stdlog("(!) Date forcée manuellement : " + date_to_process)
     else:
         # Calculate yesterday's date
         yesterday = datetime.now() - timedelta(days=1)
@@ -693,6 +733,8 @@ if __name__ == "__main__":
         stdlog('Analyse des données du BOAMP pour le ' + date_to_process)
         parse_boamp_data(data, date_to_process)
     else:
-        errlog('Pas de donnée à analyser')
+        errmsg='Aucune données à analyser'
+        stdlog(errmsg)
+        toPushover(errmsg)
     
     stdlog('Fini !')
