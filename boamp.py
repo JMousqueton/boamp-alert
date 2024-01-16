@@ -753,8 +753,7 @@ if __name__ == "__main__":
         stdlog(errmsg)
         toPushover(errmsg)
     ## Ecriture des statistiques dans statistiques.json
-    if statistiques and not debug_mode:
-        stdlog('Ecriture des statistiques pour ' + date_to_process)
+    if statistiques: #and not debug_mode:
         file_path = "statistiques.json"
         # Load existing data from the file
         try:
@@ -762,17 +761,24 @@ if __name__ == "__main__":
                 existing_data = json.load(json_file)
         except FileNotFoundError:
             existing_data = {"statistiques": []}
-        current_date = datetime.now().strftime("%Y-%m-%d")
-        data = {
-        "date": date_to_process,
-        "Marche": cptao,
-        "Modification": cptmodif,
-        "Notification": cptres,
-        "Autre": cptother
-        }
-        existing_data["statistiques"].append(data)
 
-        with open(file_path, 'w') as json_file:
-            json.dump(existing_data, json_file, indent=4)
+        existing_dates = [entry["date"] for entry in existing_data["statistiques"]]
+        if date_to_process in existing_dates:
+            stdlog("La date " + date_to_process + " existe déjà. Les statistiques n\'ont pas été mises à jour")
+        else:
+        
+
+            data = {
+            "date": date_to_process,
+            "Marche": cptao,
+            "Modification": cptmodif,
+            "Notification": cptres,
+            "Autre": cptother
+            }
+            existing_data["statistiques"].append(data)
+
+            with open(file_path, 'w') as json_file:
+                json.dump(existing_data, json_file, indent=4)
+            stdlog('Ecriture des statistiques pour ' + date_to_process)
 
     stdlog('Fini !')
