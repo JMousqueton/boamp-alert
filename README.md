@@ -54,6 +54,8 @@ LEGENDE=True
 # Nettoyage du répertoire data
 JOURS_AVANT_GZIP=7
 JOURS_AVANT_EFFACEMENT=30
+# Créer un fichier statistiques.json
+STATISTIQUES=True
 ```
 
 Optionnel pour envoyer des notifications pushover.net en cas d'erreur 

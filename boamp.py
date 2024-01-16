@@ -27,6 +27,12 @@ import http.client, urllib
 import os 
 from dotenv import load_dotenv
 
+# Init compteurs 
+cptao = 0  # compteur des avis de marché 
+cptmodif = 0 # compteur des modification 
+cptres = 0 # compteur d'avis d'attribution
+cptother =0 # Compteur autres 
+
 # Configure logging
 logging.basicConfig(
     format='%(asctime)s,%(msecs)d %(levelname)-8s %(message)s',
@@ -209,17 +215,26 @@ def determine_status(nature):
     :param record: The entire record from the response.
     :return: The determined status.
     """
+    global cptao
+    global cptmodif
+    global cptres
+    global cptother
     match nature:
         case "APPEL_OFFRE":
             status = "🟢"
+            cptao += 1 
         case "RECTIFICATIF":
             status = "🟠"
+            cptmodif += 1
         case "R\u00e9sultat de march\u00e9":   # Vérifier la pertinence 
             status = "🏆"
+            cptres += 1
         case "ATTRIBUTION":
             status = "🏆"
+            cptres += 1
         case _:
             status = ""
+            ctpother += 1
     return status
 
 # Send message to Teams Channel regarding the nature of the message 
@@ -674,6 +689,8 @@ if __name__ == "__main__":
 
     legendemonthly= os.getenv('LEGENDE',False) 
 
+    statistiques = os.getenv('STATISTIQUES',False) 
+
     USER_KEY=os.getenv('PUSH_USER')
     API_KEY= os.getenv('PUSH_API')
     
@@ -735,5 +752,27 @@ if __name__ == "__main__":
         errmsg='Aucune données à analyser'
         stdlog(errmsg)
         toPushover(errmsg)
-    
+    ## Ecriture des statistiques dans statistiques.json
+    if statistiques and not debug_mode:
+        stdlog('Ecriture des statistiques pour ' + date_to_process)
+        file_path = "statistiques.json"
+        # Load existing data from the file
+        try:
+            with open(file_path, "r") as json_file:
+                existing_data = json.load(json_file)
+        except FileNotFoundError:
+            existing_data = {"statistiques": []}
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        data = {
+        "date": date_to_process,
+        "Marche": cptao,
+        "Modification": cptmodif,
+        "Notification": cptres,
+        "Autre": cptother
+        }
+        existing_data["statistiques"].append(data)
+
+        with open(file_path, 'w') as json_file:
+            json.dump(existing_data, json_file, indent=4)
+
     stdlog('Fini !')
