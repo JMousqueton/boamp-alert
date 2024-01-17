@@ -3,7 +3,7 @@
 
 __author__ = "Julien Mousqueton"
 __email__ = "julien.mousqueton_AT_computacenter.com"
-__version__ = "1.3.1"
+__version__ = "1.4.0"
 
 # Import for necessary Python modules
 import requests
@@ -237,6 +237,7 @@ def determine_status(nature):
             ctpother += 1
     return status
 
+
 # Send message to Teams Channel regarding the nature of the message 
 def tomsteeams(nature,title,message):
     if nature == "ATTRIBUTION":
@@ -294,6 +295,7 @@ def fetch_all_keywords(api_url):
             stdlog("Erreur de récupuration des mots clef. Status code: "+ str(response.status_code))
             break
     return all_results
+
 
 def parse_boamp_data(api_response, date):
     """
@@ -530,14 +532,14 @@ def parse_boamp_data(api_response, date):
                 elif float(montanttotal) > float(montant1):
                     logomontant = '💰'
                 elif "entre" in typemarche:
-                    logomontant= '❌'
+                    logomontant= '⬇️'
                 # Disable since no flag in Windows emoji :(  
                 #elif typemarche == "Marchés européens":
                 #    logomontant += '🇪🇺'
             elif "entre" in typemarche:
-                    logomontant= '❌'
+                    logomontant= '⬇️'
             elif "MAPA" in typemarche:
-                logomontant = "⬇️"
+                logomontant = "❌"
             
             # Ajout du logo en fonction des services du marché 
             logoservices_list = []
@@ -594,7 +596,7 @@ def showlegend(debug=False):
     message += '<tr><td>💰</td><td>Marché supérieur à ' +  format_large_number(str(montant1)) + ' €</td></tr>'
     message += '<tr><td>💰💰</td><td>Marché supérieur à ' +  format_large_number(str(montant2)) + ' €</td></tr>'
     message += '<tr><td>💰💰💰</td><td>Marché supérieur à ' +  format_large_number(str(montant3)) + ' €</td></tr>'
-    message += '<tr><td>❌</td><td>Marché entre 90k€ et ' + seuilmarches + '</td></tr>'
+    message += '<tr><td>⬇️</td><td>Marché entre 90k€ et ' + seuilmarches + '</td></tr>'
     message += '<tr><td>❌</td><td>Marché inférieur à 90k€ (MAPA)</td></tr>'
     message += '<tr><td>❓</td><td>Marché d\'un montant inconnu ou compris entre ' + seuilmarches +  ' et ' + format_large_number(str(montant1)) + ' €</td></tr>'
     message += '<tr><td>💿</td><td>Marché identifié comme un marché <strong>logiciel</strong></td></tr>'
@@ -647,6 +649,7 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--select", type=str, choices=['attribution', 'ao', 'rectificatif'], help="Selection de la nature de l'avis : 'attribution', 'rectificatif' ou 'ao' (Appel d'Offre)")
     parser.add_argument("-l", "--legende", action="store_true", help="Publie la légende dans le channel des avis de marché")
     parser.add_argument("-m", "--motclef", action="store_true", help="Affiche tous les mots clefs")
+    parser.add_argument("-S", "--statistiques", action="store_true", help="Force la création des statistiques quand l'option début est activée")
 
     # Parse arguments
     args = parser.parse_args()
@@ -658,6 +661,11 @@ if __name__ == "__main__":
     select_option = args.select 
     legende = args.legende
     motclef = args.motclef    
+    statistiquesdebug = args.statistiques
+
+    if statistiquesdebug and not debug_mode:
+        stdlog("Erreur -S/--statistiques ne peut être utilisé uniquement avec -D/--debug")
+        exit(1)
 
     ### Si option -m ou --motclef 
     if motclef: 
@@ -713,7 +721,6 @@ if __name__ == "__main__":
         stdlog('🧹 ' + str(day_before_gzip) + ' jours avant de compresser les fichiers')
         stdlog('🧹 ' + str(day_before_delete) + ' jours avant d\'effacer les fichiers')
     housekeeping(day_before_gzip, day_before_delete)
-
     
     ## Get Keywords 
     descripteurs_list = os.getenv('DESCRIPTEURS', '').split(',')
@@ -752,8 +759,9 @@ if __name__ == "__main__":
         errmsg='Aucune données à analyser'
         stdlog(errmsg)
         toPushover(errmsg)
+    
     ## Ecriture des statistiques dans statistiques.json
-    if statistiques: #and not debug_mode:
+    if (statistiques and not debug_mode) or (statistiquesdebug and debug_mode):
         file_path = "statistiques.json"
         # Load existing data from the file
         try:
@@ -766,8 +774,6 @@ if __name__ == "__main__":
         if date_to_process in existing_dates:
             stdlog("La date " + date_to_process + " existe déjà. Les statistiques n\'ont pas été mises à jour")
         else:
-        
-
             data = {
             "date": date_to_process,
             "Marche": cptao,
