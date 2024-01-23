@@ -353,7 +353,7 @@ def parse_boamp_data(api_response, date):
             typemarche = record.get('famille_libelle', 'Non disponible')
             urlavis = record.get('url_avis', 'Not available')
             ###
-            # Lecture  des données JSON du champs donnees
+            # Init variable
             ###
             montanttotal =''
             avisinitial = ''
@@ -362,9 +362,16 @@ def parse_boamp_data(api_response, date):
             titulaire = ''
             date_reception_offres = ''
             dureemarche = ''
+            complement = ''
             nblots = 0
+            correctif = ''
+            
+            ###
+            # Lecture des données 
+            ###
             donnees_brut = record.get('donnees',{})
             donnees = json.loads(donnees_brut)
+            
             # Print the first key 
             # FNSimple
             # MAPA
@@ -406,6 +413,16 @@ def parse_boamp_data(api_response, date):
                     critere_pondere = ''
             elif first_key == "MAPA" and nature == "RECTIFICATIF":
                 print("🛠️ A FAIRE : " + first_key + " " + nature)    
+                try: 
+                    correctif = donnees['MAPA']['rectificatif']['infosRectif']['rubrique']
+                    correctif += " : " + donnees['MAPA']['rectificatif']['infosRectif']['supprimer']
+                except:
+                    correct = ''
+                try:
+                    avisinitial = donnees['MAPA']['rectificatif']['avisInitial']['idWeb']
+                except:
+                    avisinitial = ''
+
             #### FNSimple ####
             elif first_key == "FNSimple" and nature == "APPEL_OFFRE":
                 try:
@@ -430,16 +447,24 @@ def parse_boamp_data(api_response, date):
                         valeur_haute = ''
                 montanttotal = valeur_haute
             elif first_key == "FNSimple" and nature == "ATTRIBUTION":
-                print("🛠️ A FAIRE : " + first_key + " " + nature)
+                print("🛠️ [" + ID + "] A FINIR : " + first_key + " " + nature)
+                try:
+                    avisinitial = donnees['FNSimple']['attribution']['avisInitial']['idWeb']
+                except:
+                    avisinitial = ''
+                try: 
+                    complement = donnees['FNSimple']['attribution']['attributionMarche']
+                except:
+                    complement =''
+
             #### EFORMS ####
             elif first_key == "EFORMS" and nature == "APPEL_OFFRE":
-                print("🛠️ [" + ID + "] A FAIRE : " + first_key + " " + nature)
+                print("🛠️ [" + ID + "] A FINIR : " + first_key + " " + nature)
                 try: 
                     procurement_projects = donnees['EFORMS']['ContractNotice']['cac:ProcurementProjectLot']
                     nblots = sum('cbc:ID' in project for project in procurement_projects)
                 except:
                     nblots = ''
-
                 if nblots > 1:
                     try:
                         critere_pondere = "<strong>Critères d'attribution :</strong><ul>"
@@ -473,7 +498,7 @@ def parse_boamp_data(api_response, date):
                     
 
             elif first_key == "EFORMS" and nature == "ATTRIBUTION":
-                print("🛠️ A FAIRE : " + first_key + " " + nature)
+                print("🛠️ [" + ID + "] A FINIR : " + first_key + " " + nature)
                 try:
                     titulaire = donnees['EFORMS']['ContractAwardNotice']['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:NoticeResult']['efac:LotTender']['efac:TenderReference']['cbc:ID']
                 except:
@@ -483,6 +508,11 @@ def parse_boamp_data(api_response, date):
                 print('(!) ' + errmsg)
                 toPushover(errmsg)
             
+
+
+            #################
+                
+
             ## Titulaire
             if not titulaire:
                 try:
@@ -536,6 +566,10 @@ def parse_boamp_data(api_response, date):
                 message += '<strong>Durée du marché : </strong>' +  dureemarche + '\n\n'
             if titulaire:
                 message += '<strong>Titulaire(s) : </strong>' + titulaire + '\n\n'
+            if complement:
+                message += complement.replace('\n','\n\n') + '\n\n'
+            if correctif:
+                message += '<strong>Modification(s) : </strong>\n\n' + correctif + "\n\n"
             if avisinitial:
                 #annonce_lie_list = ', '.join(['<a href="https://www.boamp.fr/pages/avis/?q=idweb:' + item + '">' + item + '</a>' for item in annonce_lie])
                 annonce_lie_list = '<a href="https://www.boamp.fr/pages/avis/?q=idweb:' + avisinitial+ '">' + avisinitial + '</a>'
