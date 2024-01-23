@@ -3,7 +3,7 @@
 
 __author__ = "Julien Mousqueton"
 __email__ = "julien.mousqueton_AT_computacenter.com"
-__version__ = "1.4.0"
+__version__ = "2.0.0"
 
 # Import for necessary Python modules
 import requests
@@ -296,6 +296,17 @@ def fetch_all_keywords(api_url):
             break
     return all_results
 
+def translate(word):
+    match word.lower():
+        case "quality":
+            return "Qualité : "
+        case "price":
+            return "Prix : "
+        case "month":
+            return "mois"
+        case _:
+            return word
+
 
 def parse_boamp_data(api_response, date):
     """
@@ -340,132 +351,167 @@ def parse_boamp_data(api_response, date):
             services_list= services_clean.replace('Informatique (','').replace(')','')
             pubdate =  record.get('dateparution', 'Non disponible')
             typemarche = record.get('famille_libelle', 'Non disponible')
-        
+            urlavis = record.get('url_avis', 'Not available')
             ###
             # Lecture  des données JSON du champs donnees
             ###
+            montanttotal =''
+            avisinitial = ''
+            critere_pondere = ''
+            ref = ''
+            titulaire = ''
+            date_reception_offres = ''
+            dureemarche = ''
+            nblots = 0
             donnees_brut = record.get('donnees',{})
             donnees = json.loads(donnees_brut)
-            
-            ## Titulaires 
-            try:
-                titulaires_list = record.get('titulaire',[])
-                # Check if the list has only one entry or multiple entries
-                if len(titulaires_list) == 1:
-                    # If there's only one entry, just take that entry
-                    titulaires = titulaires_list[0]
-                else:
-                    # If there are multiple entries, join them with ', '
-                    titulaires = ', '.join(titulaires_list)
-            except:
-                titulaires = ''
-            if not titulaires:
+            # Print the first key 
+            # FNSimple
+            # MAPA
+            # EFORMS
+            first_key = next(iter(donnees))
+            #### MAPA ####
+            if first_key == "MAPA" and nature == "ATTRIBUTION":
                 try:
-                    titulaires_list= donnees['ATTRIBUTION']['DECISION']['TITULAIRE']
-                    if isinstance(titulaires_list, list):
-                        nb=len(titulaires_list)
-                        for titulaire in titulaires_list:
-                            nb = nb - 1
-                            titulaires += titulaire['DENOMINATION']
-                            if nb > 0:
-                                titulaires += ', '
-                    else:
-                        titulaires = titulaires_list['DENOMINATION']
+                    avisinitial = donnees['MAPA']['attribution']['avisInitial']['idWeb']
                 except:
-                    titulaires = ''
-            
-            
-             ## deadline 
-            deadline = record.get('datelimitereponse', 'Non disponible')
-            try:
-                date_object = datetime.fromisoformat(deadline)
-                deadline = date_object.strftime("%Y-%m-%d")
-            except:
-                pass
-            if not deadline:
+                    avisinitial = ''
                 try:
-                    deadline = donnees['CONDITION_DELAI']['RECEPT_OFFRES']
-                    date_object = datetime.fromisoformat(deadline)
-                    deadline = date_object.strftime("%Y-%m-%d")
+                    montant = donnees['MAPA']['attribution']['attribution']['resultat']['attribue']['montant']['valeur']
                 except:
-                    deadline = ''
-            if deadline:
-                target_date = datetime.strptime(deadline, "%Y-%m-%d")
-                current_date = datetime.now()
-                delai = (target_date - current_date).days
-            
-            ## Montant 
-            try:
-                devisetotal = donnees['OBJET']['CARACTERISTIQUES']['VALEUR_TOTALE']['@DEVISE']
-                montanttotal = donnees['OBJET']['CARACTERISTIQUES']['VALEUR_TOTALE']['#text']
-            except:
+                    montant = ''
+                montanttotal = montant
+            elif first_key == "MAPA" and nature == "APPEL_OFFRE":
                 try:
-                    devisetotal = donnees['ATTRIBUTION']['DECISION']['RENSEIGNEMENT']['MONTANT']['@DEVISE']
-                    montanttotal = donnees['ATTRIBUTION']['DECISION']['RENSEIGNEMENT']['MONTANT']['#text']
+                    duree_mois = donnees['MAPA']['initial']['natureMarche']['nbMois']
+                except:
+                    duree_mois = ''
+                try:
+                    date_reception_offres = donnees['MAPA']['initial']['delais']['receptionOffres']
+                    date_object = datetime.fromisoformat(date_reception_offres)
+                    date_reception_offres = date_object.strftime("%Y-%m-%d")
+                except: 
+                    date_reception_offres =''
+                try:
+                    ref = donnees['MAPA']['initial']['renseignements']['idMarche']
+                except: 
+                    ref =''
+                try:
+                    critere_pondere_list = donnees['MAPA']['initial']['criteres']['criterePondere']
+                    critere_pondere = "<strong>Critères d'attribution :</strong><ul>"
+                    for item in critere_pondere_list:
+                        critere_pondere += "<li>  " +  item['critere'] + " : " + item['criterePCT'] + "%</li>"
+                    critere_pondere += "</ul>\n\n"        
+                except:
+                    critere_pondere = ''
+            elif first_key == "MAPA" and nature == "RECTIFICATIF":
+                print("🛠️ A FAIRE : " + first_key + " " + nature)    
+            #### FNSimple ####
+            elif first_key == "FNSimple" and nature == "APPEL_OFFRE":
+                try:
+                    date_reception_offres = donnees['FNSimple']['initial']['procedure']['dateReceptionOffres']
+                    date_object = datetime.fromisoformat(date_reception_offres)
+                    date_reception_offres = date_object.strftime("%Y-%m-%d")
+                except: 
+                    date_reception_offres =''
+                try:
+                    duree_mois = donnees['FNSimple']['natureMarche']['dureeMois']
+                except:
+                    try: 
+                        dureemarche = donnees['FNSimple']['initial']['natureMarche']['dureeMois'] + ' mois'
+                    except:
+                        dureemarche = ''
+                try:
+                    valeur_haute = donnees['FNSimple']['natureMarche']['valeurEstimee']['fourchette']['valeurHaute']
                 except:
                     try:
-                        devisetotal = donnees['OBJET']['LOTS']['LOT']['VALEUR']['@DEVISE']
-                        montanttotal = donnees['OBJET']['LOTS']['LOT']['VALEUR']['#text']
+                        valeur_haute = donnees['FNSimple']['initial']['natureMarche']['valeurEstimee']['fourchette']['valeurHaute']
                     except:
-                        devisetotal = ''
-                        montanttotal = ''
-            try:
-                devise = donnees['OBJET']['CARACTERISTIQUES']['VALEUR']['@DEVISE']
-                valeur = donnees['OBJET']['CARACTERISTIQUES']['VALEUR']['#text']
-            except:
-                 devise = ''
-                 valeur = ''
-            
-            ## Reférence 
-            try:
-                ref = donnees['CONDITION_ADMINISTRATIVE']['REFERENCE_MARCHE']
-            except:
-                ref = '' 
-            if not ref:
-                try:
-                    ref = donnees['OBJET']['REF_MARCHE']
-                except:
-                    ref = ''
-            ## Max participants 
-            try:
-                offresattendues = donnees['PROCEDURE']['ACCORD_CADRE']['NB_MAX_PARTICIPANTS']
-            except:
-                offresattendues = ''
-            
-            ## Durée 
-            try:
-                duree = donnees.get('OBJET', {}).get('DUREE_DELAI', {}).get('DUREE_MOIS', '')
-            except:
-                duree = ''
-            
-            ## Lots 
-            try:
-                if 'DIV_EN_LOTS' in donnees['OBJET'] and 'OUI' in donnees['OBJET']['DIV_EN_LOTS']:
-                    lots = True 
-                else:
-                    lots = False 
-            except KeyError:
-                    lots = False
-            if lots:    
-                lots_data = donnees['OBJET'].get('LOTS', {}).get('LOT', [])
-                nblots = len(lots_data)        
-            try:
-                offresrecues = donnees.get('ATTRIBUTION', {}).get('DECISION', {}).get('RENSEIGNEMENT', {}).get('NB_OFFRE_RECU', '')
-            except:
+                        valeur_haute = ''
+                montanttotal = valeur_haute
+            elif first_key == "FNSimple" and nature == "ATTRIBUTION":
+                print("🛠️ A FAIRE : " + first_key + " " + nature)
+            #### EFORMS ####
+            elif first_key == "EFORMS" and nature == "APPEL_OFFRE":
+                print("🛠️ [" + ID + "] A FAIRE : " + first_key + " " + nature)
                 try: 
-                    if nblots:
-                       offresrecues = [f"Lot {index + 1} : {item['RENSEIGNEMENT']['NB_OFFRE_RECU']}" for index, item in enumerate(donnees.get("ATTRIBUTION", {}).get("DECISION", []))]
-                       offresrecues = ", ".join(offresrecues)
+                    procurement_projects = donnees['EFORMS']['ContractNotice']['cac:ProcurementProjectLot']
+                    nblots = sum('cbc:ID' in project for project in procurement_projects)
                 except:
-                    offresrecues = ''    
+                    nblots = ''
+
+                if nblots > 1:
+                    try:
+                        critere_pondere = "<strong>Critères d'attribution :</strong><ul>"
+                        for i in range(nblots):
+                            critere_pondere_list = donnees['EFORMS']['ContractNotice']['cac:ProcurementProjectLot'][i]['cac:TenderingTerms']['cac:AwardingTerms']['cac:AwardingCriterion']['cbc:Description']['#text']
+                            try:
+                                descriptif = donnees['EFORMS']['ContractNotice']['cac:ProcurementProjectLot'][i]['cac:ProcurementProject']['cbc:Name']['#text'] + "<BR>"
+                            except:
+                                descriptif = ''
+                            critere_pondere += "<li> Lot n°" + str(i+1) + " : " + descriptif + str(critere_pondere_list) + "</li>"
+                        critere_pondere += "</ul>\n\n"
+                    except:
+ 
+                        try:
+                            critere_pondere_list = donnees['EFORMS']['ContractNotice']['cac:ProcurementProjectLot']['cac:TenderingTerms']['cac:AwardingTerms']['cac:AwardingCriterion']['cac:SubordinateAwardingCriterion']
+                            critere_pondere =  '<strong>Critères : </strong><ul>'
+                            for item in critere_pondere_list:
+                                critere_pondere  += "<li>"
+                                for key, value in item.items():
+                                    critere_pondere += translate(value.get('#text', ''))
+                                critere_pondere += "</li>"
+                            critere_pondere += "</ul>\n\n"    
+                        except:
+                                critere_pondere = ''
+                try:
+                    duree = donnees['EFORMS']['ContractNotice']['cac:ProcurementProjectLot']['cac:ProcurementProject']['cac:PlannedPeriod']['cbc:DurationMeasure']['#text']
+                    unite = translate(donnees['EFORMS']['ContractNotice']['cac:ProcurementProjectLot']['cac:ProcurementProject']['cac:PlannedPeriod']['cbc:DurationMeasure']['@unitCode'])
+                    dureemarche = duree + ' ' + unite 
+                except:
+                    dureemarche = '' 
+                    
+
+            elif first_key == "EFORMS" and nature == "ATTRIBUTION":
+                print("🛠️ A FAIRE : " + first_key + " " + nature)
+                try:
+                    titulaire = donnees['EFORMS']['ContractAwardNotice']['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:NoticeResult']['efac:LotTender']['efac:TenderReference']['cbc:ID']
+                except:
+                    titulaire = ''
+            else:
+                errmsg = "ERROR DONNEES : [" +ID + "]" + first_key + '(' + nature + ')'
+                print('(!) ' + errmsg)
+                toPushover(errmsg)
             
-            ## Annonces liées 
-            try: 
-                annonce_lie = record.get('annonce_lie', [])
-            except: 
-                annonce_lie = ''
-            urlavis = record.get('url_avis', 'Not available')
+            ## Titulaire
+            if not titulaire:
+                try:
+                    titulaires_list = record.get('titulaire',[])
+                    # Check if the list has only one entry or multiple entries
+                    if len(titulaires_list) == 1:
+                        # If there's only one entry, just take that entry
+                        titulaire = titulaires_list[0]
+                    else:
+                        # If there are multiple entries, join them with ', '
+                        titulaire = ', '.join(titulaires_list)
+                except:
+                    titulaire = ''
             
+            if not date_reception_offres:
+                ## deadline 
+                date_reception_offres = record.get('datelimitereponse', 'Non disponible')
+                try:
+                    date_object = datetime.fromisoformat(date_reception_offres)
+                    date_reception_offres = date_object.strftime("%Y-%m-%d")
+                except:
+                    pass
+            
+            
+            if date_reception_offres:
+                target_date = datetime.strptime(date_reception_offres, "%Y-%m-%d")
+                current_date = datetime.now()
+                delai = (target_date - current_date).days
+    
 
             # Create the message for msteams card 
             message=''
@@ -478,47 +524,21 @@ def parse_boamp_data(api_response, date):
             if typemarche == "Marchés entre 90 k€ et seuils européens" and seuilmarches: 
                 typemarche = typemarche.replace('seuils européens',seuilmarches)
             message += '<strong>Type de marché : </strong>' + typemarche + '\n\n' 
-            if valeur:
-                message += '<strong>Valeur du marché : </strong>' + format_large_number(valeur) + ' ' + devise + '\n\n'
-            elif montanttotal:
-                message += '<strong>Valeur du marché : </strong>' + format_large_number(montanttotal) + ' ' + devisetotal + '\n\n'
-            if lots:
-                message += '<strong>Marché alloti : </strong>✅\n\n'
-                try: 
-                    counter = 1
-                    for lot in lots_data:
-                        intitule = lot.get('INTITULE','')
-                        if not intitule:
-                            intitule = lot.get('DESCRIPTION')
-                        num = lot.get('NUM')
-                        info = lot.get('INFO_COMPL','')
-                        deviselot = lot.get('VALEUR',{}).get('@DEVISE','')
-                        montantlot = lot.get('VALEUR',{}).get('#text','')
-                        if not num:
-                            if "lot" not in intitule.lower():
-                                message += '\t Lot ' + str(counter) + ' : ' + intitule + '\n\n'
-                                counter += 1 
-                            else:    
-                                message += '\t' + intitule + '\n\n' 
-                        else:   
-                            message += '\tLot '+ num + " : " +  intitule + '\n\n'
-                        if montantlot:
-                            message += '\t\tValeur du lot : ' + format_large_number(montantlot) + ' ' + deviselot + '\n\n'
-                        message += '\t\t'+info+'\n\n'
-                except: 
-                    pass
-            if offresattendues:
-                message += '<strong>Offres maximales attendues : </strong>' + str(offresattendues) + '\n\n'
-            if deadline:
-                message += '<strong>Deadline : </strong>' + deadline + ' ('+ str(delai)+ ' jours)\n\n' 
-            if offresrecues:
-                message += '<strong>Offre(s) reçue(s) : </strong>' + offresrecues + '\n\n'
-            if titulaires:
-                message += '<strong>Titulaire(s) : </strong>' + titulaires + '\n\n'
-            if duree:
-                message +='<strong>Durée du marché (en mois) : </strong>' + duree + '\n\n'
-            if annonce_lie:
-                annonce_lie_list = ', '.join(['<a href="https://www.boamp.fr/pages/avis/?q=idweb:' + item + '">' + item + '</a>' for item in annonce_lie])
+            if montanttotal:
+                message += '<strong>Valeur maximale estimée du marché : </strong>' + format_large_number(str(montanttotal)) + '€\n\n' 
+            if nblots > 1 :
+                message += '<strong>Lots : </strong>' + str(nblots) +'\n\n'
+            if critere_pondere:
+                message += critere_pondere
+            if date_reception_offres:
+                message += '<strong>Deadline : </strong>' + date_reception_offres + ' ('+ str(delai)+ ' jours)\n\n' 
+            if dureemarche:
+                message += '<strong>Durée du marché : </strong>' +  dureemarche + '\n\n'
+            if titulaire:
+                message += '<strong>Titulaire(s) : </strong>' + titulaire + '\n\n'
+            if avisinitial:
+                #annonce_lie_list = ', '.join(['<a href="https://www.boamp.fr/pages/avis/?q=idweb:' + item + '">' + item + '</a>' for item in annonce_lie])
+                annonce_lie_list = '<a href="https://www.boamp.fr/pages/avis/?q=idweb:' + avisinitial+ '">' + avisinitial + '</a>'
                 message += '<strong>Annonce(s) liée(s) : </strong>' + annonce_lie_list + '\n\n'
             message += '<strong>Avis : </strong> ' + urlavis + '\n\n'
             
@@ -527,15 +547,15 @@ def parse_boamp_data(api_response, date):
             if montanttotal and nature == "APPEL_OFFRE": 
                 if float(montanttotal) > float(montant3):
                     logomontant = '💰💰💰'
-                elif float(montanttotal) > float(montant2):
+                elif float(montanttotal) > float(montant2): 
                     logomontant = '💰💰'
                 elif float(montanttotal) > float(montant1):
                     logomontant = '💰'
                 elif "entre" in typemarche:
                     logomontant= '⬇️'
-                # Disable since no flag in Windows emoji :(  
-                #elif typemarche == "Marchés européens":
-                #    logomontant += '🇪🇺'
+            #    # Disable since no flag in Windows emoji :(  
+            #    #elif typemarche == "Marchés européens":
+            #    #    logomontant += '🇪🇺'
             elif "entre" in typemarche:
                     logomontant= '⬇️'
             elif "MAPA" in typemarche:
@@ -557,6 +577,8 @@ def parse_boamp_data(api_response, date):
                 logoservices_list.append("🌍")
             if "assistance" in services_list.lower():
                 logoservices_list.append("🆘")
+            if "consommable" in services_list.lower():
+                logoservices_list.append("♻️")
             if "téléphonie" in services_list.lower() or "télécommunications" in services_list.lower():
                 logoservices_list.append('📞')
             ## Affiche le logo du montant uniquement pour les avis de marchés / modification 
@@ -700,7 +722,7 @@ if __name__ == "__main__":
     statistiques = os.getenv('STATISTIQUES',False) 
 
     USER_KEY=os.getenv('PUSH_USER')
-    API_KEY= os.getenv('PUSH_API')
+    API_KEY=os.getenv('PUSH_API')
     
     day_before_gzip = int(os.getenv("JOURS_AVANT_GZIP", 0))
     day_before_delete = int(os.getenv("JOURS_AVANT_EFFACEMENT", 0))  
