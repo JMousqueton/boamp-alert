@@ -16,9 +16,9 @@ Type de marché | Type d'avis | Avancement |
 MAPA | Appel d'offre/Modification| 90% |
 MAPA | Attribution | 90% 
 Marchés entre 90 k€ et 221 k€ | Appel d'offre/Modification | 80% |
-Marchés entre 90 k€ et 221 k€ | Attribution  | 10% |
-Marchés européens | Appel d'offre/Modification | 60% |
-Marchés européens | Attribution | 10% |
+Marchés entre 90 k€ et 221 k€ | Attribution  | 20% |
+Marchés européens | Appel d'offre/Modification | 80% |
+Marchés européens | Attribution | 20% |
 
 ## Fonctionnalités
 

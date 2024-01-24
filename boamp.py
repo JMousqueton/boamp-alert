@@ -3,7 +3,7 @@
 
 __author__ = "Julien Mousqueton"
 __email__ = "julien.mousqueton_AT_computacenter.com"
-__version__ = "2.0.0"
+__version__ = "2.0.2"
 
 # Import for necessary Python modules
 import requests
@@ -119,9 +119,9 @@ def format_large_number(number_str):
     try:
         number = float(number_str)
         if number >= 1000000:
-            formatted_number = f"{number / 1000000:.0f}M"
+            formatted_number = f"{number / 1000000:.1f}M"
         elif number >= 1000:
-            formatted_number = f"{number / 1000:.0f}k"
+            formatted_number = f"{number / 1000:.1f}k"
         else:
             formatted_number = f"{number:.2f}"
         return formatted_number
@@ -299,7 +299,7 @@ def fetch_all_keywords(api_url):
 def translate(word):
     match word.lower():
         case "quality":
-            return "Qualité : "
+            return "Valeur Technique : "
         case "price":
             return "Prix : "
         case "month":
@@ -320,7 +320,7 @@ def parse_boamp_data(api_response, date):
         return
       
     stdlog(str(total_count) + ' enregistrement(s) récupéré(s)')
-    i=0 
+    cptmsteams=0
     # Write the response to a file
     filename = f"data/boamp-{date}.json"
     stdlog('Ecriture du fichier ' +  filename)
@@ -456,6 +456,12 @@ def parse_boamp_data(api_response, date):
                     complement = donnees['FNSimple']['attribution']['attributionMarche']
                 except:
                     complement =''
+            elif first_key == "FNSimple" and nature == "RECTIFICATIF":
+                print("🛠️ [" + ID + "] A FINIR : " + first_key + " " + nature)
+                try:
+                    avisinitial = donnees['FNSimple']['rectificatif']['avisInitial']['idWeb']  
+                except:
+                    avisinitial = ''
 
             #### EFORMS ####
             elif first_key == "EFORMS" and nature == "APPEL_OFFRE":
@@ -465,6 +471,29 @@ def parse_boamp_data(api_response, date):
                     nblots = sum('cbc:ID' in project for project in procurement_projects)
                 except:
                     nblots = ''
+                if nblots == 1:
+                    try:
+                        critere_pondere_list = donnees['EFORMS']['ContractNotice']['cac:ProcurementProjectLot']['cac:TenderingTerms']['cac:AwardingTerms']['cac:AwardingCriterion']['cac:SubordinateAwardingCriterion']
+                        critere_pondere =  '<strong>Critères : </strong><ul>'
+                        for item in critere_pondere_list:
+                            critere_pondere  += "<li>"
+                            critere = item['cbc:AwardingCriterionTypeCode']['#text']
+                            value = item['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:AwardCriterionParameter']['efbc:ParameterNumeric']
+                            # for key, value in item.items():
+                            critere_pondere += translate(critere) + str(value) + "%"
+                            critere_pondere += "</li>"
+                        critere_pondere += "</ul>\n\n"    
+                    except:
+                            critere_pondere = ''
+                    try:
+                        montanttotal = donnees['EFORMS']['ContractNotice']['cac:ProcurementProject']['cac:RequestedTenderTotal']['cbc:EstimatedOverallContractAmount']['#text']
+                    except:
+                        try:
+                            montanttotal = donnees['EFORMS']['ContractNotice']['cac:ProcurementProjectLot']['cac:ProcurementProject']['cac:RequestedTenderTotal']['cbc:EstimatedOverallContractAmount']['#text']    
+                        except:
+                            montanttotal =''
+                            
+                        
                 if nblots > 1:
                     try:
                         critere_pondere = "<strong>Critères d'attribution :</strong><ul>"
@@ -495,7 +524,13 @@ def parse_boamp_data(api_response, date):
                     dureemarche = duree + ' ' + unite 
                 except:
                     dureemarche = '' 
-                    
+                if not montanttotal:
+                    try:
+                        montanttotal = donnees['EFORMS']['ContractNotice']['cac:ProcurementProject']['cac:RequestedTenderTotal']['cbc:EstimatedOverallContractAmount']['#text'] 
+                    except:
+                        montanttotal =''
+
+                
 
             elif first_key == "EFORMS" and nature == "ATTRIBUTION":
                 print("🛠️ [" + ID + "] A FINIR : " + first_key + " " + nature)
@@ -563,7 +598,7 @@ def parse_boamp_data(api_response, date):
             if date_reception_offres:
                 message += '<strong>Deadline : </strong>' + date_reception_offres + ' ('+ str(delai)+ ' jours)\n\n' 
             if dureemarche:
-                message += '<strong>Durée du marché : </strong>' +  dureemarche + '\n\n'
+                message += '<strong>Durée du marché : </strong>' +  dureemarche.replace('YEAR','an') + '\n\n'
             if titulaire:
                 message += '<strong>Titulaire(s) : </strong>' + titulaire + '\n\n'
             if complement:
@@ -634,14 +669,14 @@ def parse_boamp_data(api_response, date):
             # Envoie dans msteams
             if not debug_mode:
                 tomsteeams(nature,title,message)
-                i+=1 
+                cptmsteams+=1 
             else:
                 print(title + '\n' + remove_html_tags(message.replace('\n\n','\n')))
                 print('-----------------------------------------------')
     else:
         errlog("Pas de résultat trouvé")
 
-    stdlog(str(i) + ' message(s) envoyé(s) dans msteams')
+    stdlog(str(cptmsteams) + ' message(s) envoyé(s) dans msteams')
 
 
 def showlegend(debug=False):
