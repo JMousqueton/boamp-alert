@@ -3,7 +3,7 @@
 
 __author__ = "Julien Mousqueton"
 __email__ = "julien.mousqueton_AT_computacenter.com"
-__version__ = "2.0.2"
+__version__ = "2.1.0"
 
 # Import for necessary Python modules
 import requests
@@ -365,6 +365,8 @@ def parse_boamp_data(api_response, date):
             complement = ''
             nblots = 0
             correctif = ''
+            montant_par_lot = ''
+            descriptif_lots = ''
             
             ###
             # Lecture des données 
@@ -528,7 +530,24 @@ def parse_boamp_data(api_response, date):
                     try:
                         montanttotal = donnees['EFORMS']['ContractNotice']['cac:ProcurementProject']['cac:RequestedTenderTotal']['cbc:EstimatedOverallContractAmount']['#text'] 
                     except:
-                        montanttotal =''
+                        try:
+                            montant_par_lot = "<strong>Montant du marché :</strong><ul>"
+                            montanttotal = 0 
+                            for i in range(nblots):
+                                valeur = donnees['EFORMS']['ContractNotice']['cac:ProcurementProjectLot'][i]['cac:ProcurementProject']['cac:RequestedTenderTotal']['cbc:EstimatedOverallContractAmount']['#text']
+                                montant_par_lot += "<li> Lot n°" + str(i+1) + " : " + format_large_number(str(valeur)) + "€</li>"
+                                montanttotal += float(valeur)
+                            montant_par_lot += "</ul>\n\n"
+                        except:
+                            montanttotal =''
+                try:
+                    descriptif_lots = '<strong>Description des lots :</strong><ul>'
+                    for i in range(nblots):
+                        descriptif_lot =  donnees['EFORMS']['ContractNotice']['cac:ProcurementProjectLot'][i]['cac:ProcurementProject']['cbc:Description']['#text']
+                        descriptif_lots += "<li> Lot n°" + str(i+1) + " : " + descriptif_lot +"</li>"
+                    descriptif_lots += "</ul>\n\n"
+                except:
+                    descriptif_lots = ''
 
                 
 
@@ -603,8 +622,12 @@ def parse_boamp_data(api_response, date):
                 message += '<strong>Titulaire(s) : </strong>' + titulaire + '\n\n'
             if complement:
                 message += complement.replace('\n','\n\n') + '\n\n'
+            if montant_par_lot:
+                message += montant_par_lot
             if correctif:
                 message += '<strong>Modification(s) : </strong>\n\n' + correctif + "\n\n"
+            if descriptif_lots:
+                message += descriptif_lots
             if avisinitial:
                 #annonce_lie_list = ', '.join(['<a href="https://www.boamp.fr/pages/avis/?q=idweb:' + item + '">' + item + '</a>' for item in annonce_lie])
                 annonce_lie_list = '<a href="https://www.boamp.fr/pages/avis/?q=idweb:' + avisinitial+ '">' + avisinitial + '</a>'

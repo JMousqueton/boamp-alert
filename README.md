@@ -4,22 +4,6 @@
 Ce script Python est conçu pour récupérer les données des marchés publics du BOAMP (Bulletin officiel des annonces des marchés publics) via l'API, analyser les données et envoyer des notifications via Microsoft Teams. 
 Il est particulièrement utile pour surveiller les appels d'offres publics et les mises à jour associées.
 
-
-## ⚠️ Attention
-
-Le BOAMP vient (encore) de changer le format de réponse. 
-Les données minimum sont toujours présentes. 
-Le script va évoler dans les jours qui viennent pour intégrer toutes les modifications :
-
-Type de marché | Type d'avis | Avancement |
- --- | --- | --- |
-MAPA | Appel d'offre/Modification| 90% |
-MAPA | Attribution | 90% 
-Marchés entre 90 k€ et 221 k€ | Appel d'offre/Modification | 80% |
-Marchés entre 90 k€ et 221 k€ | Attribution  | 20% |
-Marchés européens | Appel d'offre/Modification | 80% |
-Marchés européens | Attribution | 20% |
-
 ## Fonctionnalités
 
 Récupération des données de l'API BOAMP basée sur une date spécifique.
