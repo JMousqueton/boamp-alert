@@ -162,3 +162,4 @@ data/*.json
 .DS_Store
 data/*.gz
 statistiques.json
+statistiques.png

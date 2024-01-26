@@ -912,7 +912,7 @@ if __name__ == "__main__":
     | |`-' /\ `-' / | |  |)|| \  / | | |     
     /( `--'  )---'  |_|  (_)| |\/| | /(      
    (__)    (_)              '-'  '-'(__) 
-            par Julien Mousqueton / Computacenter         
+            par Julien Mousqueton       
         ''')
     
     if sys.version_info < (3, 10):
