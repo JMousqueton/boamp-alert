@@ -3,7 +3,7 @@
 
 __author__ = "Julien Mousqueton"
 __email__ = "julien.mousqueton_AT_computacenter.com"
-__version__ = "2.2.1"
+__version__ = "2.2.2"
 
 # Import for necessary Python modules
 import requests
@@ -361,7 +361,7 @@ def parse_boamp_data(api_response, date):
             typemarche = record.get('famille_libelle', 'Non disponible')
             urlavis = record.get('url_avis', 'Not available')
             ###
-            # Init variable
+            # Init variables
             ###
             montanttotal =''
             avisinitial = ''
@@ -380,18 +380,20 @@ def parse_boamp_data(api_response, date):
             reponses_soumises = ''
             reponses_soumises_list  = ''
             titulaire_par_lot = ''
+            
             ###
-            # Lecture des données 
+            # Lecture des "données"  
             ###
             donnees_brut = record.get('donnees',{})
             donnees = json.loads(donnees_brut)
             
-            # Print the first key 
-            # FNSimple
-            # MAPA
-            # EFORMS
+
             first_key = next(iter(donnees))
-            #### MAPA ####
+            #### 
+            ##
+            ## MAPA ATTRIBUTION
+            ## 
+            ####
             if first_key == "MAPA" and nature == "ATTRIBUTION":
                 try:
                     avisinitial = donnees['MAPA']['attribution']['avisInitial']['idWeb']
@@ -402,6 +404,11 @@ def parse_boamp_data(api_response, date):
                 except:
                     montant = ''
                 montanttotal = montant
+            #### 
+            ##
+            ## MAPA AVIS DE MARCHE 
+            ## 
+            ####
             elif first_key == "MAPA" and nature == "APPEL_OFFRE":
                 try:
                     duree_mois = donnees['MAPA']['initial']['natureMarche']['nbMois']
@@ -425,6 +432,11 @@ def parse_boamp_data(api_response, date):
                     critere_pondere += "</ul>\n\n"        
                 except:
                     critere_pondere = ''
+            #### 
+            ##
+            ## MAPA RECTIFICATION 
+            ## 
+            ####
             elif first_key == "MAPA" and nature == "RECTIFICATIF":
                 print("🛠️ A FAIRE : " + first_key + " " + nature)    
                 try: 
@@ -436,8 +448,13 @@ def parse_boamp_data(api_response, date):
                     avisinitial = donnees['MAPA']['rectificatif']['avisInitial']['idWeb']
                 except:
                     avisinitial = ''
-
-            #### FNSimple ####
+            ######################################
+                    
+            #### 
+            ##
+            ## FNSimple AVIS DE MARCHE 
+            ## 
+            ####
             elif first_key == "FNSimple" and nature == "APPEL_OFFRE":
                 try:
                     date_reception_offres = donnees['FNSimple']['initial']['procedure']['dateReceptionOffres']
@@ -446,7 +463,7 @@ def parse_boamp_data(api_response, date):
                 except: 
                     date_reception_offres =''
                 try:
-                    duree_mois = donnees['FNSimple']['natureMarche']['dureeMois']
+                    dureemarche = donnees['FNSimple']['natureMarche']['dureeMois']
                 except:
                     try: 
                         dureemarche = donnees['FNSimple']['initial']['natureMarche']['dureeMois'] + ' mois'
@@ -460,6 +477,11 @@ def parse_boamp_data(api_response, date):
                     except:
                         valeur_haute = ''
                 montanttotal = valeur_haute
+            #### 
+            ##
+            ## FNSimple ATTRIBUTION 
+            ## 
+            ####
             elif first_key == "FNSimple" and nature == "ATTRIBUTION":
                 print("🛠️ [" + ID + "] A FINIR : " + first_key + " " + nature)
                 try:
@@ -470,14 +492,25 @@ def parse_boamp_data(api_response, date):
                     complement = donnees['FNSimple']['attribution']['attributionMarche']
                 except:
                     complement =''
+            #### 
+            ##
+            ## FNSimple RECTIFICATION 
+            ## 
+            ####
             elif first_key == "FNSimple" and nature == "RECTIFICATIF":
                 print("🛠️ [" + ID + "] A FINIR : " + first_key + " " + nature)
                 try:
                     avisinitial = donnees['FNSimple']['rectificatif']['avisInitial']['idWeb']  
                 except:
                     avisinitial = ''
-
-            #### EFORMS ####
+            ######################################
+                    
+                    
+            #### 
+            ##
+            ## EFORMS AVIS DE MARCHE 
+            ## 
+            ####
             elif first_key == "EFORMS" and nature == "APPEL_OFFRE":
                 print("🛠️ [" + ID + "] A FINIR : " + first_key + " " + nature)
                 try: 
@@ -568,10 +601,12 @@ def parse_boamp_data(api_response, date):
                 except:
                     descriptif_lots = ''
 
-                
-
+            #### 
+            ##
+            ## EFORMS ATTRIBUTION
+            ## 
+            ####
             elif first_key == "EFORMS" and nature == "ATTRIBUTION":
-                print("🛠️ [" + ID + "] A FINIR : " + first_key + " " + nature)
                 try:
                     
                     lots = donnees['EFORMS']['ContractAwardNotice']['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:NoticeResult']['efac:LotResult']
@@ -672,11 +707,14 @@ def parse_boamp_data(api_response, date):
                 print('(!) ' + errmsg)
                 toPushover(errmsg)
             
-
-
             #################
                 
-
+            ######
+            #
+            # GENERIQUE 
+            #
+            ######
+                
             ## Titulaire
             if not titulaire:
                 try:
@@ -996,7 +1034,7 @@ if __name__ == "__main__":
         stdlog('Analyse des données du BOAMP pour le ' + date_to_process)
         parse_boamp_data(data, date_to_process)
     else:
-        errmsg='Aucune données à analyser'
+        errmsg='Aucune donnée à analyser'
         stdlog(errmsg)
         toPushover(errmsg)
     
