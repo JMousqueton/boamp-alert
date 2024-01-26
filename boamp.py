@@ -3,7 +3,7 @@
 
 __author__ = "Julien Mousqueton"
 __email__ = "julien.mousqueton_AT_computacenter.com"
-__version__ = "2.2.0"
+__version__ = "2.2.1"
 
 # Import for necessary Python modules
 import requests
@@ -510,9 +510,8 @@ def parse_boamp_data(api_response, date):
                         try:
                             montanttotal = donnees['EFORMS']['ContractNotice']['cac:ProcurementProjectLot']['cac:ProcurementProject']['cac:RequestedTenderTotal']['cbc:EstimatedOverallContractAmount']['#text']    
                         except:
-                            montanttotal = ''
-                            
-                        
+                            montanttotal = ''                           
+                    
                 if nblots > 1:
                     try:
                         critere_pondere = "<strong>Critères d'attribution :</strong><ul>"
@@ -542,7 +541,10 @@ def parse_boamp_data(api_response, date):
                     unite = translate(donnees['EFORMS']['ContractNotice']['cac:ProcurementProjectLot']['cac:ProcurementProject']['cac:PlannedPeriod']['cbc:DurationMeasure']['@unitCode'])
                     dureemarche = duree + ' ' + unite 
                 except:
-                    dureemarche = '' 
+                    try:
+                        dureemarche = donnees['EFORMS']['ContractNotice']['cac:ProcurementProjectLot']['cac:ProcurementProject']['cac:ContractExtension']['cac:Renewal']['cac:Period']['cbc:Description']['#text']
+                    except:
+                        dureemarche = ''
                 if not montanttotal:
                     try:
                         montanttotal = donnees['EFORMS']['ContractNotice']['cac:ProcurementProject']['cac:RequestedTenderTotal']['cbc:EstimatedOverallContractAmount']['#text'] 
@@ -664,10 +666,6 @@ def parse_boamp_data(api_response, date):
                         reponses_soumises = donnees['EFORMS']['ContractAwardNotice']['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:NoticeResult']['efac:LotResult']['efac:ReceivedSubmissionsStatistics'][0]['efbc:StatisticsNumeric']
                 except: # Exception as e: print(e)
                     reponses_soumises = ''
-                
-
-
-
 
             else:
                 errmsg = "ERROR DONNEES : [" +ID + "]" + first_key + '(' + nature + ')'
@@ -851,7 +849,7 @@ def showlegend(debug=False):
     message += '<tr><td>🟠</td><td>Modification d\'un avis de marché</td></tr>'
     message += '<tr><td>🏆</td><td>Avis d\'attribution</td></tr></table>'
     current_date = datetime.now().date()
-    message += '<BR><BR>(C) 2022-' + str(current_date.year) + ' Computacenter - Développé par Julien Mousqueton'
+    message += '<BR><BR>(C) 2022-' + str(current_date.year) + ' Computacenter - Développé par Julien Mousqueton <BR><BR>Version : ' + __version__
 
     if not debug:
         title = 'Légende'
