@@ -3,7 +3,7 @@
 
 __author__ = "Julien Mousqueton"
 __email__ = "julien.mousqueton_AT_computacenter.com"
-__version__ = "2.1.0"
+__version__ = "2.1.1"
 
 # Import for necessary Python modules
 import requests
@@ -302,6 +302,8 @@ def translate(word):
             return "Valeur Technique : "
         case "price":
             return "Prix : "
+        case "cost":
+            return "Prix : "
         case "month":
             return "mois"
         case _:
@@ -367,7 +369,10 @@ def parse_boamp_data(api_response, date):
             correctif = ''
             montant_par_lot = ''
             descriptif_lots = ''
-            
+            critere = ''
+            montant = ''
+            reponses_soumises = ''
+            reponses_soumises_list  = ''
             ###
             # Lecture des données 
             ###
@@ -479,21 +484,26 @@ def parse_boamp_data(api_response, date):
                         critere_pondere =  '<strong>Critères : </strong><ul>'
                         for item in critere_pondere_list:
                             critere_pondere  += "<li>"
-                            critere = item['cbc:AwardingCriterionTypeCode']['#text']
-                            value = item['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:AwardCriterionParameter']['efbc:ParameterNumeric']
+                            critere_nom = item['cbc:AwardingCriterionTypeCode']['#text']
+                            critere_valeur = item['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:AwardCriterionParameter']['efbc:ParameterNumeric']
                             # for key, value in item.items():
-                            critere_pondere += translate(critere) + str(value) + "%"
+                            critere_pondere += translate(critere_nom) + str(critere_valeur) + "%"
                             critere_pondere += "</li>"
                         critere_pondere += "</ul>\n\n"    
                     except:
-                            critere_pondere = ''
+                            try:
+                                critere_pondere = "<strong>Critères : </strong>"
+                                critere_pondere += donnees ['EFORMS']['ContractNotice']['cac:ProcurementProjectLot']['cac:TenderingTerms']['cac:AwardingTerms']['cac:AwardingCriterion']['cbc:Description']['#text']
+                                critere_pondere += "\n\n"
+                            except:
+                                critere_pondere = ''
                     try:
                         montanttotal = donnees['EFORMS']['ContractNotice']['cac:ProcurementProject']['cac:RequestedTenderTotal']['cbc:EstimatedOverallContractAmount']['#text']
                     except:
                         try:
                             montanttotal = donnees['EFORMS']['ContractNotice']['cac:ProcurementProjectLot']['cac:ProcurementProject']['cac:RequestedTenderTotal']['cbc:EstimatedOverallContractAmount']['#text']    
                         except:
-                            montanttotal =''
+                            montanttotal = ''
                             
                         
                 if nblots > 1:
@@ -539,7 +549,7 @@ def parse_boamp_data(api_response, date):
                                 montanttotal += float(valeur)
                             montant_par_lot += "</ul>\n\n"
                         except:
-                            montanttotal =''
+                            montant_par_lot =''
                 try:
                     descriptif_lots = '<strong>Description des lots :</strong><ul>'
                     for i in range(nblots):
@@ -554,9 +564,78 @@ def parse_boamp_data(api_response, date):
             elif first_key == "EFORMS" and nature == "ATTRIBUTION":
                 print("🛠️ [" + ID + "] A FINIR : " + first_key + " " + nature)
                 try:
+                    
+                    lots = donnees['EFORMS']['ContractAwardNotice']['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:NoticeResult']['efac:LotResult']
+                    nblots = sum('cbc:ID' in lot for lot in lots)
+                except: 
+                    nblots = ''
+                try:
                     titulaire = donnees['EFORMS']['ContractAwardNotice']['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:NoticeResult']['efac:LotTender']['efac:TenderReference']['cbc:ID']
                 except:
                     titulaire = ''
+                try: 
+                    critere = donnees['EFORMS']['ContractAwardNotice']['cac:ProcurementProjectLot']['cac:TenderingTerms']['cac:AwardingTerms']['cac:AwardingCriterion']['cbc:CalculationExpression']['#text']
+                except:
+                    critere = ''
+                try:
+                    montant = donnees['EFORMS']['ContractAwardNotice']['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:NoticeResult']['cbc:TotalAmount']['#text']
+                except:
+                    try:
+                        montant = donnees['EFORMS']['ContractAwardNotice']['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:NoticeResult']['efac:LotTender']['cac:LegalMonetaryTotal']['cbc:PayableAmount']['#text']
+                    except:
+                        montant = ''
+                try:
+                    critere_pondere_list = donnees['EFORMS']['ContractAwardNotice']['cac:ProcurementProjectLot']['cac:TenderingTerms']['cac:AwardingTerms']['cac:AwardingCriterion']['cac:SubordinateAwardingCriterion']
+                    critere_pondere =  '<strong>Critères : </strong><ul>'
+                    for item in critere_pondere_list:
+                        critere_pondere  += "<li>"
+                        critere_nom = item['cbc:AwardingCriterionTypeCode']['#text']
+                        critere_valeur = item['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:AwardCriterionParameter']['efbc:ParameterNumeric']
+                        # for key, value in item.items():
+                        critere_pondere += translate(critere_nom) + str(critere_valeur) + "%"
+                        critere_pondere += "</li>"
+                    critere_pondere += "</ul>\n\n"    
+                except:
+                    try:
+                        critere_pondere = "<strong>Critères : </strong>"
+                        critere_pondere += donnees['EFORMS']['ContractAwardNotice']['cac:ProcurementProjectLot']['cac:TenderingTerms']['cac:AwardingTerms']['cac:AwardingCriterion']['cbc:Description']['#text']
+                        critere_pondere += "\n\n"
+                    except:
+                         critere_pondere = ''
+                if nblots > 1:
+                    try:
+                        reponses_soumises_list = "<strong>Réponses reçues par lots : </strong><ul>"
+                        for i in range(nblots):
+                            if donnees['EFORMS']['ContractAwardNotice']['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:NoticeResult']['efac:LotResult'][i]['efac:ReceivedSubmissionsStatistics'][0]['efbc:StatisticsCode']['@listName'] == 'received-submission-type':
+                                reponses_soumises_par_lot =  donnees['EFORMS']['ContractAwardNotice']['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:NoticeResult']['efac:LotResult'][i]['efac:ReceivedSubmissionsStatistics'][0]['efbc:StatisticsNumeric']
+                                reponses_soumises_list += "<li> Lot n°" + str(i+1) + " : " +  str(reponses_soumises_par_lot) + "</li>"
+                        reponses_soumises_list += "</ul>\n\n"  
+                    except Exception as e: print(e)
+                        #reponses_soumises_list = ''  
+                    try:
+                        montant_par_lot = "<strong>Montant du marché :</strong><ul>"
+                        montant = 0 
+                        for i in range(nblots):
+                            valeur = donnees['EFORMS']['ContractAwardNotice']['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:NoticeResult']['efac:LotTender'][i]['cac:LegalMonetaryTotal']['cbc:PayableAmount']['#text']
+                            montant_par_lot += "<li> Lot n°" + str(i+1) + " : " + format_large_number(str(valeur)) + "€</li>"
+                            montant += float(valeur)
+                        montant_par_lot += "</ul>\n\n"
+                    except:
+                        montant_par_lot =''
+
+
+
+                        
+                try:
+                    if donnees['EFORMS']['ContractAwardNotice']['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:NoticeResult']['efac:LotResult']['efac:ReceivedSubmissionsStatistics'][0]['efbc:StatisticsCode']['@listName'] == 'received-submission-type':
+                        reponses_soumises = donnees['EFORMS']['ContractAwardNotice']['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:NoticeResult']['efac:LotResult']['efac:ReceivedSubmissionsStatistics'][0]['efbc:StatisticsNumeric']
+                except: # Exception as e: print(e)
+                    reponses_soumises = ''
+                
+
+
+
+
             else:
                 errmsg = "ERROR DONNEES : [" +ID + "]" + first_key + '(' + nature + ')'
                 print('(!) ' + errmsg)
@@ -610,14 +689,22 @@ def parse_boamp_data(api_response, date):
             message += '<strong>Type de marché : </strong>' + typemarche + '\n\n' 
             if montanttotal:
                 message += '<strong>Valeur maximale estimée du marché : </strong>' + format_large_number(str(montanttotal)) + '€\n\n' 
+            if montant: 
+                message += '<strong>Valeur du marché : </strong>' + format_large_number(str(montant)) + '€\n\n' 
+            if reponses_soumises:
+                message += '<strong>Nombre de réponses soumises : </strong>' + str(reponses_soumises) + "\n\n"
             if nblots > 1 :
                 message += '<strong>Lots : </strong>' + str(nblots) +'\n\n'
+            if reponses_soumises_list:
+                message += reponses_soumises_list
             if critere_pondere:
                 message += critere_pondere
             if date_reception_offres:
                 message += '<strong>Deadline : </strong>' + date_reception_offres + ' ('+ str(delai)+ ' jours)\n\n' 
             if dureemarche:
                 message += '<strong>Durée du marché : </strong>' +  dureemarche.replace('YEAR','an') + '\n\n'
+            if critere:
+                message += "<strong>Critère d'attribution : </strong>" + critere + "\n\n"
             if titulaire:
                 message += '<strong>Titulaire(s) : </strong>' + titulaire + '\n\n'
             if complement:
