@@ -3,7 +3,7 @@
 
 __author__ = "Julien Mousqueton"
 __email__ = "julien.mousqueton_AT_computacenter.com"
-__version__ = "2.1.1"
+__version__ = "2.2.0"
 
 # Import for necessary Python modules
 import requests
@@ -306,6 +306,12 @@ def translate(word):
             return "Prix : "
         case "month":
             return "mois"
+        case "year":
+            return "année(s)"
+        case "months":
+            return "mois"
+        case "years":
+            return "années"
         case _:
             return word
 
@@ -373,6 +379,7 @@ def parse_boamp_data(api_response, date):
             montant = ''
             reponses_soumises = ''
             reponses_soumises_list  = ''
+            titulaire_par_lot = ''
             ###
             # Lecture des données 
             ###
@@ -610,8 +617,8 @@ def parse_boamp_data(api_response, date):
                                 reponses_soumises_par_lot =  donnees['EFORMS']['ContractAwardNotice']['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:NoticeResult']['efac:LotResult'][i]['efac:ReceivedSubmissionsStatistics'][0]['efbc:StatisticsNumeric']
                                 reponses_soumises_list += "<li> Lot n°" + str(i+1) + " : " +  str(reponses_soumises_par_lot) + "</li>"
                         reponses_soumises_list += "</ul>\n\n"  
-                    except Exception as e: print(e)
-                        #reponses_soumises_list = ''  
+                    except: #Exception as e: print(e)
+                        reponses_soumises_list = ''  
                     try:
                         montant_par_lot = "<strong>Montant du marché :</strong><ul>"
                         montant = 0 
@@ -621,10 +628,36 @@ def parse_boamp_data(api_response, date):
                             montant += float(valeur)
                         montant_par_lot += "</ul>\n\n"
                     except:
-                        montant_par_lot =''
-
-
-
+                        try:
+                            montant_par_lot = "<strong>Montant du marché :</strong><ul>"
+                            montant = 0 
+                            for i in range(nblots):
+                                valeur = donnees['EFORMS']['ContractAwardNotice']['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:NoticeResult']['efac:LotTender'][i]['cac:LegalMonetaryTotal']['cbc:PayableAmount']['#text']
+                                montant_par_lot += "<li> Lot n°" + str(i+1) + " : " + format_large_number(str(valeur)) + "€</li>"
+                                montant += float(valeur)
+                            montant_par_lot += "</ul>\n\n"
+                        except:
+                            montant_par_lot =''
+                    try:
+                        titulaire_par_lot = "<strong>Titulaire par lot :</strong><ul>"
+                        for i in range(nblots):
+                            titulaire_nom = donnees['EFORMS']['ContractAwardNotice']['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:NoticeResult']['efac:LotTender'][i]['efac:TenderReference']['cbc:ID']
+                            titulaire_par_lot += "<li> Lot n°" + str(i+1) + " : " + titulaire_nom+ "</li>"
+                        titulaire_par_lot += "</ul>\n\n"
+                    except:
+                        titulaire_par_lot =''
+                    try:
+                        descriptif_lots = "<strong>Descriptif des lots :</strong><ul>"
+                        for i in range(nblots):
+                            descriptif_lot = donnees['EFORMS']['ContractAwardNotice']['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:NoticeResult']['efac:SettledContract'][i]['cbc:Title']['#text']
+                            if "Lot n" in descriptif_lot:
+                                descriptif_lots += "<li>"+ descriptif_lot + "</li>"
+                            else: 
+                                descriptif_lots += "<li> Lot n°" + str(i+1) + " : " + descriptif_lot+ "</li>"
+                        descriptif_lots += "</ul>\n\n"
+                    #except:
+                    #    descriptif_lots = ''
+                    except Exception as e: print(e)
                         
                 try:
                     if donnees['EFORMS']['ContractAwardNotice']['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:NoticeResult']['efac:LotResult']['efac:ReceivedSubmissionsStatistics'][0]['efbc:StatisticsCode']['@listName'] == 'received-submission-type':
@@ -707,6 +740,8 @@ def parse_boamp_data(api_response, date):
                 message += "<strong>Critère d'attribution : </strong>" + critere + "\n\n"
             if titulaire:
                 message += '<strong>Titulaire(s) : </strong>' + titulaire + '\n\n'
+            if titulaire_par_lot:
+                message += titulaire_par_lot
             if complement:
                 message += complement.replace('\n','\n\n') + '\n\n'
             if montant_par_lot:
@@ -723,20 +758,24 @@ def parse_boamp_data(api_response, date):
             
             # Ajout de l'icone en fonction du montant du marché 
             logomontant = '❓'
-            if montanttotal and nature == "APPEL_OFFRE": 
-                if float(montanttotal) > float(montant3):
+            if montanttotal and nature == "APPEL_OFFRE":
+                if typemarche == "Marchés européens" and float(montanttotal) < float(montant1)/2:
+                    logomontant = '❌'
+                elif float(montanttotal) > float(montant3):
                     logomontant = '💰💰💰'
                 elif float(montanttotal) > float(montant2): 
                     logomontant = '💰💰'
                 elif float(montanttotal) > float(montant1):
                     logomontant = '💰'
+                elif float(montanttotal) > float(montant1)/2:
+                    logomontant ='💶'
                 elif "entre" in typemarche:
-                    logomontant= '⬇️'
+                    logomontant= '❌'
             #    # Disable since no flag in Windows emoji :(  
             #    #elif typemarche == "Marchés européens":
             #    #    logomontant += '🇪🇺'
             elif "entre" in typemarche:
-                    logomontant= '⬇️'
+                    logomontant= '❌'
             elif "MAPA" in typemarche:
                 logomontant = "❌"
             
@@ -794,12 +833,14 @@ def showlegend(debug=False):
     affiche la legende 
     '''
     message = '<table border="0"><tr><th>Logo</th><th>Description</th></tr>'
-    message += '<tr><td>💰</td><td>Marché supérieur à ' +  format_large_number(str(montant1)) + ' €</td></tr>'
-    message += '<tr><td>💰💰</td><td>Marché supérieur à ' +  format_large_number(str(montant2)) + ' €</td></tr>'
-    message += '<tr><td>💰💰💰</td><td>Marché supérieur à ' +  format_large_number(str(montant3)) + ' €</td></tr>'
-    message += '<tr><td>⬇️</td><td>Marché entre 90k€ et ' + seuilmarches + '</td></tr>'
+    message += '<tr><td>💰</td><td>Marché supérieur à ' +  format_large_number(str(montant1)) + '€</td></tr>'
+    message += '<tr><td>💰💰</td><td>Marché supérieur à ' +  format_large_number(str(montant2)) + '€</td></tr>'
+    message += '<tr><td>💰💰💰</td><td>Marché supérieur à ' +  format_large_number(str(montant3)) + '€</td></tr>'
+    message += '<tr><td>💶</td><td>Marché européen compris entre '+  format_large_number(str(float(montant1)/2)) +'€ et ' +  format_large_number(str(montant1))+'€</td></tr>'
+    message += '<tr><td>❌</td><td>Marché entre 90k€ et ' + seuilmarches + '</td></tr>'
     message += '<tr><td>❌</td><td>Marché inférieur à 90k€ (MAPA)</td></tr>'
-    message += '<tr><td>❓</td><td>Marché d\'un montant inconnu ou compris entre ' + seuilmarches +  ' et ' + format_large_number(str(montant1)) + ' €</td></tr>'
+    message += '<tr><td>❌</td><td>Marché européen inférieur à '+  format_large_number(str(float(montant1)/2)) +'€</td></tr>'
+    message += '<tr><td>❓</td><td>Marché d\'un montant inconnu</td></tr>' #  ou compris entre ' + seuilmarches +  ' et ' + format_large_number(str(montant1)) + ' €</td></tr>'
     message += '<tr><td>💿</td><td>Marché identifié comme un marché <strong>logiciel</strong></td></tr>'
     message += '<tr><td>🧰</td><td>Marché identifié comme un marché de <strong>maintenance</strong></td></tr>'
     message += '<tr><td>👥</td><td>Marché identifié comme un marché de <strong>prestation de service</strong></td></tr>'

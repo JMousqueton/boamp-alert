@@ -109,17 +109,21 @@ options:
 
 ## Legende      
 
-💰      Marché supérieur à 1M €*
+💰      Marché supérieur à 1M€*
 
-💰💰    Marché supérieur à 2M €*
+💰💰    Marché supérieur à 2M€*
 
-💰💰💰  Marché supérieur à 5M €*
+💰💰💰  Marché supérieur à 5M€*
 
-⬇️       Marché entre 90k€ et 221 k€
+💶      Marché européen compris entre 500.0k€** et 1.0M€*
+
+❌       Marché entre 90k€ et 221k€
 
 ❌      Marché inférieur à 90k€ (MAPA)
 
-❓      Marché d'un montant inconnu ou compris entre 221k€ et 1M €*
+❌      Marché européen inférieur à 500.0k€** 
+
+❓      Marché d'un montant inconnu ou compris entre 221k€ et 1M€*
 
 💿      Marché identifié comme un marché logiciel
 
@@ -142,7 +146,7 @@ options:
 🏆      Avis d'attribution
 
 >  &#42; Valeur configurarable dans le fichier .env (cf [.env.sample](.env.sample))
-
+>  &#42;&#42; La moitié de la valeur de 💰 (soit 1M€ par défaut)
 
 ## Exemple
 
