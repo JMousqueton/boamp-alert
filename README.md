@@ -1,7 +1,7 @@
 
 # 🔔 BOAMP Alert
 
-Ce script Python est conçu pour récupérer les données des marchés publics du BOAMP (Bulletin officiel des annonces des marchés publics) via l'API, analyser les données et envoyer des notifications via Microsoft Teams. 
+Ce script Python est conçu pour récupérer les données des marchés publics du BOAMP (Bulletin officiel des annonces des marchés publics) via l'API, analyser les données et envoyer des notifications via [Microsoft Teams](https://teams.microsoft.com) ou [Mattermost](https://mattermost.com/) 
 Il est particulièrement utile pour surveiller les appels d'offres publics et les mises à jour associées.
 
 ## Fonctionnalités
@@ -9,27 +9,24 @@ Il est particulièrement utile pour surveiller les appels d'offres publics et le
 Récupération des données de l'API BOAMP basée sur une date spécifique.
 Analyse des données récupérées pour extraire les informations pertinentes.
 Envoi de notifications à Microsoft Teams avec des informations détaillées sur les appels d'offres publics.
-Journalisation pour les messages standard, de débogage et d'erreur.
 Variables d'environnement pour une configuration flexible.
 
 
 ## Prérequis
 
-
 - Python 3.10+ 
-- Bibliothèques externes : requests, json, pymsteams, datetime, logging, argparse, re, sys, os, load_dotenv
+- Bibliothèques externes : requests, json, pymsteams, datetime, logging, argparse, re, sys, os, load_dotenv, markdownify
 
 
 ## Installation
 
 1) Assurez-vous que Python 3.10 minimum est installé sur votre système.
-2) Installez les paquets Python requis :
+2) Clonez ou téléchargez ce script sur votre machine locale.
+3) Installez les paquets Python requis :
 
 ```
 pip3 install -r requirements.txt
 ```
-
-3) Clonez ou téléchargez ce script sur votre machine locale.
 
 ## Configuration 
 
@@ -38,8 +35,11 @@ pip3 install -r requirements.txt
 
 ```
 # Webhook pour les notifications msteams
-WEBHOOK_MARCHE=
-WEBHOOK_ATTRIBUTION=
+MS_TEAMS_WEBHOOK_MARCHE=
+MS_TEAMS_WEBHOOK_ATTRIBUTION=
+# Webhook pour les notifications Mattermost
+MATTERMOST_WEBHOOK_ATTRIBUTION=
+MATTERMOST_WEBHOOK_MARCHE=
 # Mots clefs (cf [.env.sample](.env.sample))
 DESCRIPTEURS=
 # information visuelle uniquement (valeur 2024-2025)

@@ -3,7 +3,7 @@
 
 __author__ = "Julien Mousqueton"
 __email__ = "julien.mousqueton_AT_computacenter.com"
-__version__ = "2.2.2"
+__version__ = "3.0.0"
 
 # Import for necessary Python modules
 import requests
@@ -13,6 +13,9 @@ from datetime import datetime, timedelta
 import logging 
 import argparse
 import re # For removing HTML tag in debug mode 
+
+## Need for mattermost post HTML --> Markdown 
+from markdownify import markdownify as md
 
 # Housekeeping 
 import gzip
@@ -128,7 +131,6 @@ def format_large_number(number_str):
     except ValueError:
         return "Invalid input"
 
-
 def toPushover(message):
     """
     Envoi une notification vers PushOver.net 
@@ -241,9 +243,9 @@ def determine_status(nature):
 # Send message to Teams Channel regarding the nature of the message 
 def tomsteeams(nature,title,message):
     if nature == "ATTRIBUTION":
-        webhook = webhook_attribution
+        webhook = mattermost_webhook_attribution
     else:
-        webhook = webhook_marche
+        webhook = mattermost_webhook_marche
     # Create a connector card object
     myTeamsMessage = pymsteams.connectorcard(webhook)
     # Prepare card object 
@@ -254,6 +256,24 @@ def tomsteeams(nature,title,message):
         myTeamsMessage.send()
     except pymsteams.TeamsWebhookException as e:
         print(f"Erreur à l'envoie du message MSTeams : {e}")
+
+
+def tomattermost(nature,title,message):
+    if nature == "ATTRIBUTION":
+        webhook = "https://teams.mousqueton.io/hooks/x3p5pwniy3rr3q6ur7fxg6k8tw"
+    else: 
+        webhook = "https://teams.mousqueton.io/hooks/dh7s88q7nf8xbf5rnk7oxcxsqo"
+    # Prepare the payload
+    message = "**" + title + "**\n" + md(message).replace(':** *',":**\n*")
+    payload = {'text': message}
+    # Headers for the HTTP request
+    headers = {'Content-Type': 'application/json'}
+    # Perform the POST request to the Mattermost webhook
+    response = requests.post(webhook, data=json.dumps(payload), headers=headers)
+    # Check for error 
+    if not response.status_code == 200: 
+        stdlog(f"Failed to send message, status code: {response.status_code}")
+
 
 
 def fetch_all_keywords(api_url):
@@ -853,7 +873,11 @@ def parse_boamp_data(api_response, date):
             
             # Envoie dans msteams
             if not debug_mode:
-                tomsteeams(nature,title,message)
+                if ms_webhook_attribution: 
+                    #tomsteeams(nature,title,message)
+                    print("----> TEAMS")
+                if mattermost_webhook_attribution:
+                    tomattermost(nature,title,message)
                 cptmsteams+=1 
             else:
                 print(title + '\n' + remove_html_tags(message.replace('\n\n','\n')))
@@ -964,8 +988,11 @@ if __name__ == "__main__":
     load_dotenv()
 
     # Use environment variables
-    webhook_marche = os.getenv('WEBHOOK_MARCHE')
-    webhook_attribution = os.getenv('WEBHOOK_ATTRIBUTION')
+    ms_webhook_marche = os.getenv('MS_TEAMS_WEBHOOK_MARCHE')
+    ms_webhook_attribution = os.getenv('MS_TEAMS_WEBHOOK_ATTRIBUTION')
+
+    mattermost_webhook_marche = os.getenv('MS_TEAMS_WEBHOOK_MARCHE')
+    mattermost_webhook_attribution = os.getenv('MS_TEAMS_WEBHOOK_ATTRIBUTION')
 
     montant1 = "{:.2f}".format(float(os.getenv('MONTANT1','1000000')))
     montant2 = "{:.2f}".format(float(os.getenv('MONTANT2','2000000')))
@@ -1010,8 +1037,8 @@ if __name__ == "__main__":
         toPushover(errmsg)
         exit(1)
 
-    if not webhook_marche or not webhook_attribution:
-        errmsg = "Erreur: Au moins une des deux webhook URLs est manquante ou vide."
+    if (not ms_webhook_marche or not ms_webhook_attribution) or (not mattermost_webhook_attribution or not mattermost_webhook_marche):
+        errmsg = "Erreur: Il manque au moins une webhook pour MsTeams ou Mattermost."
         stdlog(errmsg)
         toPushover(errmsg)
         exit(1)
