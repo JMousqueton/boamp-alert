@@ -157,7 +157,7 @@ options:
 boamp.py renseigne le fichier statistiques.json. 
 Vous pouvez générer un graphique en utilisant le script ```python3 generatestats.py```.  
 
-![](./github/statistiques.png)
+![](./github/stats.png)
 
 
 ## Auteur
