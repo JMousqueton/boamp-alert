@@ -265,7 +265,11 @@ def tomattermost(nature,title,message):
         webhook = "https://teams.mousqueton.io/hooks/dh7s88q7nf8xbf5rnk7oxcxsqo"
     # Prepare the payload
     message = "**" + title + "**\n" + md(message).replace(':** *',":**\n*")
-    payload = {'text': message}
+    payload = {
+        'text': message,
+        'usernmae': "BOAMP-Alert",
+        'icon_url': "https://raw.githubusercontent.com/JMousqueton/boamp-alert/main/.github/boamp.png"
+    }
     # Headers for the HTTP request
     headers = {'Content-Type': 'application/json'}
     # Perform the POST request to the Mattermost webhook
