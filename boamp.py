@@ -3,7 +3,7 @@
 
 __author__ = "Julien Mousqueton"
 __email__ = "julien.mousqueton_AT_computacenter.com"
-__version__ = "3.0.0"
+__version__ = "3.0.1"
 
 # Import for necessary Python modules
 import requests
@@ -267,7 +267,7 @@ def tomattermost(nature,title,message):
     message = "**" + title + "**\n" + md(message).replace(':** *',":**\n*")
     payload = {
         'text': message,
-        'usernmae': "BOAMP-Alert",
+        'username': "BOAMP-Alert",
         'icon_url': "https://raw.githubusercontent.com/JMousqueton/boamp-alert/main/.github/boamp.png"
     }
     # Headers for the HTTP request
@@ -353,6 +353,7 @@ def parse_boamp_data(api_response, date):
       
     stdlog(str(total_count) + ' enregistrement(s) récupéré(s)')
     cptmsteams=0
+    cptmattermost=0 
     # Write the response to a file
     filename = f"data/boamp-{date}.json"
     stdlog('Ecriture du fichier ' +  filename)
@@ -878,11 +879,11 @@ def parse_boamp_data(api_response, date):
             # Envoie dans msteams
             if not debug_mode:
                 if ms_webhook_attribution: 
-                    #tomsteeams(nature,title,message)
-                    print("----> TEAMS")
+                    tomsteeams(nature,title,message)
+                    cptmsteams+=1 
                 if mattermost_webhook_attribution:
                     tomattermost(nature,title,message)
-                cptmsteams+=1 
+                    cptmattermost+=1 
             else:
                 print(title + '\n' + remove_html_tags(message.replace('\n\n','\n')))
                 print('-----------------------------------------------')
@@ -890,6 +891,7 @@ def parse_boamp_data(api_response, date):
         errlog("Pas de résultat trouvé")
 
     stdlog(str(cptmsteams) + ' message(s) envoyé(s) dans msteams')
+    stdlog(str(cptmattermost) + ' message(s) envoyé(s) dans mattermost')
 
 
 def showlegend(debug=False):
