@@ -3,7 +3,7 @@
 
 __author__ = "Julien Mousqueton"
 __email__ = "julien.mousqueton_AT_computacenter.com"
-__version__ = "3.0.1"
+__version__ = "3.1.0"
 
 # Import for necessary Python modules
 import requests
@@ -544,6 +544,14 @@ def parse_boamp_data(api_response, date):
                             acheteur = org["efac:Company"]["cac:PartyName"]["cbc:Name"]["#text"]
                 except:
                     pass
+                if "Tribunal" in acheteur: 
+                    try:
+                        for organization in donnees['EFORMS']['ContractNotice']['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:Organizations']['efac:Organization']:
+                            company_name = organization['efac:Company']['cac:PartyName']['cbc:Name']['#text']
+                            if "Tribunal" not in company_name:
+                                acheteur = company_name
+                    except:
+                        pass
                 try: 
                     procurement_projects = donnees['EFORMS']['ContractNotice']['cac:ProcurementProjectLot']
                     nblots = sum('cbc:ID' in project for project in procurement_projects)
@@ -919,6 +927,7 @@ def showlegend(debug=False):
     message += '<tr><td>🆘</td><td>Marché identifié comme un marché de <strong>d\'assistance</strong></td></tr>'
     message += '<tr><td>💻</td><td>Marché identifié comme un marché de <strong>matériel</strong></td></tr>'
     message += '<tr><td>🖨️</td><td>Marché identifié comme un marché de <strong>matériel d\'impression</strong></td></tr>'
+    message += '<tr><td>📞</td><td>Marché identifié comme un marché de <strong>télécommunication</strong></td></tr>'
     message += '<tr><td>🟢</td><td>Avis de marché</td></tr>'
     message += '<tr><td>🟠</td><td>Modification d\'un avis de marché</td></tr>'
     message += '<tr><td>🏆</td><td>Avis d\'attribution</td></tr></table>'
