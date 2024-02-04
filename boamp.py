@@ -539,6 +539,12 @@ def parse_boamp_data(api_response, date):
             elif first_key == "EFORMS" and nature == "APPEL_OFFRE":
                 print("🛠️ [" + ID + "] A FINIR : " + first_key + " " + nature)
                 try: 
+                    for org in donnees["EFORMS"]["ContractNotice"]["ext:UBLExtensions"]["ext:UBLExtension"]["ext:ExtensionContent"]["efext:EformsExtension"]["efac:Organizations"]["efac:Organization"]:
+                        if "efbc:AwardingCPBIndicator" in org and org["efbc:AwardingCPBIndicator"] == "true":
+                            acheteur = org["efac:Company"]["cac:PartyName"]["cbc:Name"]["#text"]
+                except:
+                    pass
+                try: 
                     procurement_projects = donnees['EFORMS']['ContractNotice']['cac:ProcurementProjectLot']
                     nblots = sum('cbc:ID' in project for project in procurement_projects)
                 except:
