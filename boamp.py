@@ -3,7 +3,7 @@
 
 __author__ = "Julien Mousqueton"
 __email__ = "julien.mousqueton_AT_computacenter.com"
-__version__ = "3.1.0"
+__version__ = "3.1.1"
 
 # Import for necessary Python modules
 import requests
@@ -34,7 +34,8 @@ from dotenv import load_dotenv
 cptao = 0  # compteur des avis de marché 
 cptmodif = 0 # compteur des modification 
 cptres = 0 # compteur d'avis d'attribution
-cptother =0 # Compteur autres 
+cptother = 0 # Compteur autres 
+cptcancel = 0 
 
 # Configure logging
 logging.basicConfig(
@@ -221,6 +222,7 @@ def determine_status(nature):
     global cptmodif
     global cptres
     global cptother
+    global cptcancel
     match nature:
         case "APPEL_OFFRE":
             status = "🟢"
@@ -234,9 +236,13 @@ def determine_status(nature):
         case "ATTRIBUTION":
             status = "🏆"
             cptres += 1
+        case "ANNULATION":
+            status = "🛑"
+            cptcancel += 1
         case _:
             status = ""
-            ctpother += 1
+            print('---> ',nature)
+            cptother += 1
     return status
 
 
@@ -480,7 +486,7 @@ def parse_boamp_data(api_response, date):
             ## FNSimple AVIS DE MARCHE 
             ## 
             ####
-            elif first_key == "FNSimple" and nature == "APPEL_OFFRE":
+            elif first_key == "FNSimple" and (nature == "APPEL_OFFRE" or nature == "ANNULATION"):
                 try:
                     date_reception_offres = donnees['FNSimple']['initial']['procedure']['dateReceptionOffres']
                     date_object = datetime.fromisoformat(date_reception_offres)
@@ -930,6 +936,7 @@ def showlegend(debug=False):
     message += '<tr><td>📞</td><td>Marché identifié comme un marché de <strong>télécommunication</strong></td></tr>'
     message += '<tr><td>🟢</td><td>Avis de marché</td></tr>'
     message += '<tr><td>🟠</td><td>Modification d\'un avis de marché</td></tr>'
+    message += '<tr><td>🛑</td><td>Annulation d\'un avis de marché</td></tr>'
     message += '<tr><td>🏆</td><td>Avis d\'attribution</td></tr></table>'
     current_date = datetime.now().date()
     message += '<BR><BR>(C) 2022-' + str(current_date.year) + ' Computacenter - Développé par Julien Mousqueton <BR><BR>Version : ' + __version__

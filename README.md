@@ -143,6 +143,8 @@ options:
 
 🟠       Modification d'un avis de marché
 
+🛑      Annulation d'un avis de marché
+
 🏆      Avis d'attribution
 
 >  &#42; Valeur configurarable dans le fichier .env (cf [.env.sample](.env.sample))
