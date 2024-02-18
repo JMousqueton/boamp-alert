@@ -572,7 +572,7 @@ def parse_boamp_data(api_response, date):
                             critere_nom = item['cbc:AwardingCriterionTypeCode']['#text']
                             critere_valeur = item['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:AwardCriterionParameter']['efbc:ParameterNumeric']
                             # for key, value in item.items():
-                            critere_pondere += translate(critere_nom) + str(critere_valeur) + "%"
+                            critere_pondere += translate(critere_nom) + str(critere_valeur) + "% "
                             critere_pondere += "</li>"
                         critere_pondere += "</ul>\n\n"    
                     except:
@@ -638,7 +638,7 @@ def parse_boamp_data(api_response, date):
                         except:
                             montant_par_lot =''
                 try:
-                    descriptif_lots = '<strong>Description des lots :</strong><ul>'
+                    descriptif_lots = '<strong>Description des lots :</strong><BR><ul>'
                     for i in range(nblots):
                         descriptif_lot =  donnees['EFORMS']['ContractNotice']['cac:ProcurementProjectLot'][i]['cac:ProcurementProject']['cbc:Description']['#text']
                         descriptif_lots += "<li> Lot n°" + str(i+1) + " : " + descriptif_lot +"</li>"
@@ -681,7 +681,7 @@ def parse_boamp_data(api_response, date):
                         critere_nom = item['cbc:AwardingCriterionTypeCode']['#text']
                         critere_valeur = item['ext:UBLExtensions']['ext:UBLExtension']['ext:ExtensionContent']['efext:EformsExtension']['efac:AwardCriterionParameter']['efbc:ParameterNumeric']
                         # for key, value in item.items():
-                        critere_pondere += translate(critere_nom) + str(critere_valeur) + "%"
+                        critere_pondere += translate(critere_nom) + str(critere_valeur) + "% "
                         critere_pondere += "</li>"
                     critere_pondere += "</ul>\n\n"    
                 except:
